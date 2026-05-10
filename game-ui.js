@@ -1348,4 +1348,9 @@ function drawBabyFront(ctx, shirtColor, pantsColor, headColor, time = 0, forcedH
 window.addEventListener('load', () => {
     checkPWAStatus();
     goToMenu();
+    
+    // Registrar Service Worker para PWA completa
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error:', err));
+    }
 });

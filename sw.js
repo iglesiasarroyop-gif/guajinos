@@ -1,0 +1,23 @@
+const CACHE_NAME = 'guajinos-v1';
+const ASSETS = [
+  './',
+  './index.html',
+  './styles.css',
+  './game-engine.js',
+  './game-ui.js',
+  './game-data.js',
+  './league-engine.js',
+  './equipos-inline.js'
+];
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+  );
+});
+
+self.addEventListener('fetch', (e) => {
+  e.respondWith(
+    caches.match(e.request).then((res) => res || fetch(e.request))
+  );
+});
