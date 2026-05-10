@@ -341,11 +341,25 @@
     </div>
 
     <!-- SPLASH INICIAL (PWA/FULLSCREEN) -->
-    <div id="pwa-splash" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#1a2236; z-index:20000; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer">
+    <div id="pwa-splash" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#1a2236; z-index:20000; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition: opacity 0.5s ease">
         <div style="font-size:80px; margin-bottom:20px">⚽</div>
-        <h1 style="font-family:'Luckiest Guy', cursive; color:#ffca28; font-size:40px; margin-bottom:40px; text-align:center">GUAJINOS SOCCER</h1>
-        <div style="background:#4caf50; color:#fff; padding:20px 40px; border-radius:50px; font-family:'Luckiest Guy', cursive; font-size:24px; border:6px solid #000">TOCA PARA EMPEZAR</div>
-        <p style="color:#fff; margin-top:20px; font-family:'Outfit', sans-serif; opacity:0.7">Optimizado para pantalla completa</p>
+        
+        <!-- Estado A: Juego Listo (PC o Instalado) -->
+        <div id="splash-ready" style="display:none; flex-direction:column; align-items:center">
+            <h1 style="font-family:'Luckiest Guy', cursive; color:#ffca28; font-size:40px; margin-bottom:40px; text-align:center">GUAJINOS SOCCER</h1>
+            <div style="background:#4caf50; color:#fff; padding:20px 40px; border-radius:50px; font-family:'Luckiest Guy', cursive; font-size:24px; border:6px solid #000">TOCA PARA EMPEZAR</div>
+        </div>
+
+        <!-- Estado B: Promoción de Instalación (Móvil no instalado) -->
+        <div id="splash-promote" style="display:none; flex-direction:column; align-items:center; padding:0 20px">
+            <h1 style="font-family:'Luckiest Guy', cursive; color:#ffca28; font-size:32px; margin-bottom:10px; text-align:center">¡JUEGA COMO UNA APP!</h1>
+            <p style="color:#fff; font-family:'Outfit', sans-serif; text-align:center; margin-bottom:30px; opacity:0.9">Para una experiencia a pantalla completa y sin interrupciones, instala Guajinos en tu móvil.</p>
+            
+            <button class="menu-btn btn-gold" id="btn-show-install-help" style="margin-bottom:20px">CÓMO INSTALAR 📲</button>
+            <div id="btn-skip-install" style="color:rgba(255,255,255,0.6); font-family:'Outfit', sans-serif; text-decoration:underline; font-size:14px">Continuar en el navegador</div>
+        </div>
+
+        <p style="color:#fff; margin-top:40px; font-family:'Outfit', sans-serif; opacity:0.5; font-size:12px" id="pwa-status-text">Optimizado para dispositivos móviles</p>
     </div>
 </body>
 </html>

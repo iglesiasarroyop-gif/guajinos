@@ -1349,28 +1349,64 @@ window.addEventListener('load', () => {
     checkPWAStatus();
     goToMenu();
     
-    // Registrar Service Worker para PWA completa
+    // Registro de Service Worker para PWA completa
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error:', err));
     }
 
-    // Splash inicial para Fullscreen y Audio
+    // Lógica de Splash y Promoción PWA
     const splash = document.getElementById('pwa-splash');
+    const splashReady = document.getElementById('splash-ready');
+    const splashPromote = document.getElementById('splash-promote');
+    const btnSkipInstall = document.getElementById('btn-skip-install');
+    const btnShowInstallHelp = document.getElementById('btn-show-install-help');
+    
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
     if (splash) {
-        splash.addEventListener('click', () => {
+        // Determinar qué estado mostrar
+        if (isMobile && !isStandalone) {
+            splashPromote.style.display = 'flex';
+        } else {
+            splashReady.style.display = 'flex';
+        }
+
+        const closeSplash = () => {
             splash.style.opacity = '0';
             setTimeout(() => splash.style.display = 'none', 500);
-            
-            // Inicializar Audio
             initAudio();
-            
-            // Intentar Fullscreen si es móvil
-            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen().catch(() => {});
-                }
+            if (isMobile && document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
             }
-        });
+        };
+
+        // Click en "Toca para empezar" o en el fondo si está listo
+        splash.onclick = (e) => {
+            if (splashReady.style.display === 'flex') {
+                closeSplash();
+            }
+        };
+
+        // Click en "Continuar en el navegador"
+        if (btnSkipInstall) {
+            btnSkipInstall.onclick = (e) => {
+                e.stopPropagation();
+                closeSplash();
+            };
+        }
+
+        // Click en "Cómo instalar"
+        if (btnShowInstallHelp) {
+            btnShowInstallHelp.onclick = (e) => {
+                e.stopPropagation();
+                triggerHaptic('medium');
+                const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+                document.getElementById('pwa-install-modal').style.display = 'flex';
+                document.getElementById('pwa-instructions-ios').style.display = isiOS ? 'block' : 'none';
+                document.getElementById('pwa-instructions-android').style.display = isiOS ? 'none' : 'block';
+            };
+        }
     }
 
     // Lógica del Modal de Abandono
