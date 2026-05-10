@@ -1354,15 +1354,50 @@ window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error:', err));
     }
 
-    // Botón Salir del Partido (X)
-    const btnEndMatch = document.getElementById('btn-end-match');
-    if (btnEndMatch) {
-        btnEndMatch.addEventListener('click', () => {
-            triggerHaptic('heavy');
-            if (confirm('¿Abandonar el partido?')) {
-                stopGame();
-                goToMenu();
+    // Splash inicial para Fullscreen y Audio
+    const splash = document.getElementById('pwa-splash');
+    if (splash) {
+        splash.addEventListener('click', () => {
+            splash.style.opacity = '0';
+            setTimeout(() => splash.style.display = 'none', 500);
+            
+            // Inicializar Audio
+            initAudio();
+            
+            // Intentar Fullscreen si es móvil
+            if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                }
             }
+        });
+    }
+
+    // Lógica del Modal de Abandono
+    const btnEndMatch = document.getElementById('btn-end-match');
+    const abandonModal = document.getElementById('abandon-modal');
+    const btnAbandonYes = document.getElementById('btn-abandon-yes');
+    const btnAbandonNo = document.getElementById('btn-abandon-no');
+
+    if (btnEndMatch && abandonModal) {
+        btnEndMatch.addEventListener('click', (e) => {
+            e.stopPropagation();
+            triggerHaptic('heavy');
+            abandonModal.style.display = 'flex';
+        });
+    }
+
+    if (btnAbandonYes) {
+        btnAbandonYes.addEventListener('click', () => {
+            abandonModal.style.display = 'none';
+            stopGame();
+            goToMenu();
+        });
+    }
+
+    if (btnAbandonNo) {
+        btnAbandonNo.addEventListener('click', () => {
+            abandonModal.style.display = 'none';
         });
     }
 });

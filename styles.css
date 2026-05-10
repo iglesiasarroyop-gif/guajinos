@@ -21,19 +21,23 @@ canvas{display:block;width:100%;height:100%}
 /* MENU */
 #menu-screen{background:#8bc34a;justify-content:center}
 #league-hub-screen{background:#689f38;}
+#menu-screen .menu-header{
+    padding: 20px 0;
+    width: 100%;
+}
 #menu-screen h1{
-    font-size: clamp(40px, 10vw, 85px);
+    font-size: clamp(35px, 9vw, 75px);
     font-family: 'Luckiest Guy', cursive;
     color: var(--secondary-yellow);
-    -webkit-text-stroke: 2px var(--primary-blue);
-    text-shadow: 4px 4px 0 var(--primary-blue);
+    -webkit-text-stroke: 1.5px var(--primary-blue);
+    text-shadow: 3px 3px 0 var(--primary-blue);
     margin-bottom: 5px;
     text-align: center;
     letter-spacing: 1px;
-    padding: 10px;
+    padding: 5px;
     line-height: 1.1;
 }
-#menu-screen .subtitle{color:#fff;font-weight:900;font-size:18px;margin-bottom:40px;letter-spacing:4px;text-transform:uppercase;text-shadow:2px 2px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000}
+#menu-screen .subtitle{color:#fff;font-weight:900;font-size:14px;margin-bottom:20px;letter-spacing:3px;text-transform:uppercase;text-shadow:2px 2px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000}
 #btn-random {
     text-shadow: none;
     box-shadow: none !important;
@@ -646,3 +650,5 @@ canvas{display:block;width:100%;height:100%}
     background: #fff;
     transform: scale(1.05);
 }
+# p w a - s p l a s h   {   t r a n s i t i o n :   o p a c i t y   0 . 5 s   e a s e ;   }   # a b a n d o n - m o d a l   {   p o i n t e r - e v e n t s :   a u t o   ! i m p o r t a n t ;   }  
+ 
