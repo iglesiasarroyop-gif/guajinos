@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Guajinos</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Guajinos">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a2236">
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚽</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%231a2236%22/><text y=%22.75em%22 x=%225%22 font-size=%2280%22>⚽</text></svg>">
+    
+    <meta name="description" content="Juego de fútbol 2D top-down con equipos reales de la liga infantil asturiana">
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- El Manifest se inyectará como Data URI en el build -->
+    <link rel="manifest" id="pwa-manifest">
+</head>
+<body>
+
+    <!-- MENÚ PRINCIPAL -->
+    <div id="menu-screen" class="screen active">
+        <h1>⚽ Guajinos</h1>
+        <canvas id="menu-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:-1"></canvas>
+        <div style="background:rgba(139,195,74,0.85); padding:40px; border-radius:30px; border:8px solid #000; box-shadow:0 15px 0 #000; display:flex; flex-direction:column; align-items:center; backdrop-filter:blur(5px)">
+            <div class="subtitle">Baby Football Simulator</div>
+            <div style="display:flex; flex-direction:column; gap:10px; width:100%">
+                <button class="menu-btn" id="btn-new-game">NUEVA PARTIDA</button>
+                <div id="league-continue-container" style="display:none; gap:10px; width:100%">
+                    <button class="menu-btn btn-gold" id="btn-league-continue" style="flex:1; margin:0">Continuar Liga</button>
+                    <button class="menu-btn btn-delete-small" id="btn-league-delete" style="width:50px; margin:0; font-size:24px; padding:0; display:flex; align-items:center; justify-content:center">X</button>
+                </div>
+                <button class="menu-btn btn-gold" id="btn-league-new">NUEVA LIGA</button>
+                <button class="menu-btn btn-fs" id="id-btn-install-pwa" style="display:none; background:#4dabf7; color:#fff">INSTALAR APP 📲</button>
+                <button class="menu-btn btn-fs" id="btn-fullscreen-menu">Pantalla Completa</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CREAR LIGA -->
+    <div id="league-create-screen" class="screen">
+        <h2 class="screen-title">Crear Nueva Liga</h2>
+        <div class="screen-subtitle">Configura tu torneo</div>
+        <div class="controls-row">
+            <button class="back-btn">← Volver</button>
+        </div>
+        <div style="max-width: 600px; margin: 0 auto; background: rgba(0,0,0,0.4); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="margin-bottom: 20px;">
+                <label style="display:block; color: #aaa; margin-bottom: 8px;">Selecciona Competición</label>
+                <select id="league-select-combo" style="width:100%; background:#1a2236; color:#fff; border:1px solid rgba(255,255,255,0.2); padding:10px; border-radius:8px; font-family:'Outfit',sans-serif; font-size:16px;">
+                    <option value="infantil_asturias">Liga Infantil Asturias</option>
+                </select>
+            </div>
+            <button class="menu-btn btn-gold" id="btn-league-select-team">Siguiente: Elegir Equipo</button>
+        </div>
+    </div>
+
+    <!-- HUB DE LIGA -->
+    <div id="league-hub-screen" class="screen">
+        <h2 class="screen-title">Modo Liga</h2>
+        <div class="screen-subtitle" id="league-hub-subtitle">Jornada 1</div>
+        <div class="controls-row" style="justify-content:space-between">
+            <button class="back-btn" id="btn-league-hub-back">← MENÚ PRINCIPAL</button>
+            <button class="menu-btn btn-gold" id="btn-league-play-next" style="width:auto; margin:0; padding:10px 20px">Jugar Siguiente Partido</button>
+        </div>
+        <div class="league-grid">
+            <!-- Jornada -->
+            <div class="league-panel">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
+                    <button id="btn-league-prev-day" style="background:#1a2236; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer">◀</button>
+                    <h3 id="league-schedule-title" style="margin:0;">Jornada</h3>
+                    <button id="btn-league-next-day" style="background:#1a2236; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer">▶</button>
+                </div>
+                <div id="league-schedule-list" style="display:flex; flex-direction:column; gap:8px; overflow-y:auto; flex:1; padding-right:5px">
+                    <!-- Partidos -->
+                </div>
+            </div>
+
+            <!-- Clasificación -->
+            <div class="league-panel">
+                <h3 style="margin:0 0 15px 0;">Clasificación</h3>
+                <div style="flex:1; overflow-y:auto; padding-right:5px">
+                    <table style="width:100%; border-collapse:collapse; color:#000; font-size:14px">
+                        <thead>
+                            <tr style="border-bottom:2px solid #000; text-align:left">
+                                <th style="padding:8px 4px">Pos</th>
+                                <th style="padding:8px 4px">Equipo</th>
+                                <th style="padding:8px 4px; text-align:center">PTS</th>
+                                <th style="padding:8px 4px; text-align:center">PJ</th>
+                                <th style="padding:8px 4px; text-align:center">PG</th>
+                                <th style="padding:8px 4px; text-align:center">PE</th>
+                                <th style="padding:8px 4px; text-align:center">PP</th>
+                                <th style="padding:8px 4px; text-align:center">GF</th>
+                                <th style="padding:8px 4px; text-align:center">GC</th>
+                            </tr>
+                        </thead>
+                        <tbody id="league-standings-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pichichi -->
+            <div class="league-panel">
+                <h3 style="margin:0 0 15px 0;">Pichichi</h3>
+                <div style="flex:1; overflow-y:auto; padding-right:5px">
+                    <table style="width:100%; border-collapse:collapse; color:#000; font-size:14px">
+                        <thead>
+                            <tr style="border-bottom:2px solid #000; text-align:left">
+                                <th style="padding:8px 4px">Pos</th>
+                                <th style="padding:8px 4px">Jugador</th>
+                                <th style="padding:8px 4px">Equipo</th>
+                                <th style="padding:8px 4px; text-align:center">Goles</th>
+                            </tr>
+                        </thead>
+                        <tbody id="league-scorers-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Zamora -->
+            <div class="league-panel">
+                <h3 id="league-zamora-title" style="margin:0 0 15px 0;">Equipo menos goleado</h3>
+                <div style="flex:1; overflow-y:auto; padding-right:5px">
+                    <table style="width:100%; border-collapse:collapse; color:#000; font-size:14px">
+                        <thead>
+                            <tr style="border-bottom:2px solid #000; text-align:left">
+                                <th style="padding:8px 4px">Pos</th>
+                                <th style="padding:8px 4px">Equipo</th>
+                                <th style="padding:8px 4px"></th>
+                                <th style="padding:8px 4px; text-align:center">GC</th>
+                            </tr>
+                        </thead>
+                        <tbody id="league-zamora-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FIN DE TEMPORADA -->
+    <div id="end-season-screen" class="screen" style="background:#ffd43b;">
+        <h1 style="color:#000; text-shadow:none; text-align:center; margin-top:100px;">¡FIN DE TEMPORADA!</h1>
+        <h2 style="color:#e53935; text-shadow:none; text-align:center; font-size:40px; margin:20px 0;">CAMPEÓN: <span id="champion-name"></span></h2>
+        <div style="text-align:center; margin-bottom: 40px;"><img id="champion-badge" src="" style="width:150px; height:150px; border:4px solid #000; border-radius:20px; box-shadow:0 8px 0 #000;"></div>
+        <p style="color:#000; font-size:24px; font-weight:bold; margin-bottom: 20px;">La liga actual será eliminada.</p>
+        <button class="menu-btn" id="btn-end-season-ok">Volver al Menú y Borrar Liga</button>
+    </div>
+
+    <!-- SELECCIÓN DE EQUIPO PROPIO -->
+    <div id="team-select-screen" class="screen">
+        <h2 class="screen-title">Elige tu equipo</h2>
+        <div class="screen-subtitle">Selecciona el equipo con el que quieres jugar</div>
+        <div class="controls-row">
+            <button class="back-btn">← Volver</button>
+        </div>
+        <div class="teams-grid"></div>
+    </div>
+
+    <!-- ALINEACIÓN -->
+    <div id="lineup-screen" class="screen">
+        <!-- Panel Izquierdo (Full Height) -->
+        <div id="lineup-left-controls" class="team-info-panel">
+            <div id="controls-sidebar-content" style="display:flex; flex-direction:column; gap:10px; width:100%">
+                <div style="background:#fff; border:3px solid #000; border-radius:12px; padding:6px 12px; display:flex; flex-direction:column; align-items:center; gap:4px">
+                    <span style="font-family:'Luckiest Guy', cursive; font-size:14px; color:#000">Velocidad</span>
+                    <div class="segmented-control" id="setting-speed" style="margin:0; padding:2px; background:#1a2236; border-radius:8px; width:100%">
+                        <button class="segment" data-value="0.25" style="padding:4px 4px; font-size:10px;">0.5</button>
+                        <button class="segment active" data-value="0.5" style="padding:4px 4px; font-size:10px;">1</button>
+                        <button class="segment" data-value="0.75" style="padding:4px 4px; font-size:10px;">1.5</button>
+                    </div>
+                </div>
+                <div id="shirt-color-container" style="background:#fff; border:3px solid #000; border-radius:12px; padding:6px 12px; display:flex; flex-direction:column; align-items:center; gap:4px">
+                    <span style="font-family:'Luckiest Guy', cursive; font-size:14px; color:#000">Camiseta</span>
+                    <div id="shirt-color-grid" class="color-grid" style="margin:0; grid-template-columns:repeat(5,30px); gap:4px"></div>
+                </div>
+                <div id="pants-color-container" style="background:#fff; border:3px solid #000; border-radius:12px; padding:6px 12px; display:flex; flex-direction:column; align-items:center; gap:4px">
+                    <span style="font-family:'Luckiest Guy', cursive; font-size:14px; color:#000">Pantalón</span>
+                    <div id="pants-color-grid" class="color-grid" style="margin:0; grid-template-columns:repeat(5,30px); gap:4px"></div>
+                </div>
+                <div id="duration-container-wrapper" style="background:#fff; border:3px solid #000; border-radius:12px; padding:6px 12px; display:flex; flex-direction:column; align-items:center; gap:4px">
+                    <span style="font-family:'Luckiest Guy', cursive; font-size:14px; color:#000">Duración</span>
+                    <div class="segmented-control" id="setting-duration" style="margin:0; padding:2px; background:#1a2236; border-radius:8px; width:100%">
+                        <button class="segment active" data-value="2">2m</button>
+                        <button class="segment" data-value="5">5m</button>
+                        <button class="segment" data-value="10">10m</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Central -->
+        <div class="lineup-center-col">
+            <div class="controls-row" style="width:100%;justify-content:space-between; margin-bottom:10px">
+                <div style="display:flex;gap:10px;flex:1">
+                    <button class="back-btn">← Cambiar equipo</button>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end;flex:1">
+                </div>
+            </div>
+
+            <!-- PANEL SUPERIOR DE EQUIPO -->
+            <div id="lineup-top-info" style="display:flex; align-items:center; gap:12px; height: 50px; width: 100%; max-width: 600px; margin: 0 auto 10px auto;">
+            </div>
+
+            <div id="lineup-field" class="field-container" style="position:relative; width:100%; max-width:600px; margin:0 auto;">
+                <canvas id="lineup-field-canvas" width="600" height="800"></canvas>
+                <div id="field-status" style="position:absolute;bottom:10px;right:10px;z-index:10;font-size:12px;color:rgba(255,255,255,.6);background:rgba(0,0,0,.4);padding:4px 10px;border-radius:6px"></div>
+            </div>
+
+            <div class="lineup-actions">
+                <button id="btn-start" class="btn-start-match">Completa la alineación</button>
+            </div>
+        </div>
+
+        <!-- Panel Derecho (Full Height) -->
+        <div class="lineup-right-col">
+            <button id="btn-random" class="menu-btn" style="font-size:14px; padding:10px; background:#fff; color:#000; margin:0; align-self:stretch; flex-shrink:0">🎲 Aleatorio</button>
+            <div id="players-list" class="players-panel" style="flex:1; align-self:stretch; margin:0;"></div>
+        </div>
+    </div>
+
+    <!-- SELECCIÓN DE EQUIPO RIVAL -->
+    <div id="rival-select-screen" class="screen">
+        <h2 class="screen-title">Elige equipo rival</h2>
+        <div class="screen-subtitle">Los jugadores rivales se asignarán aleatoriamente</div>
+        <div class="controls-row">
+            <button class="back-btn">← Volver a alineación</button>
+        </div>
+        <div class="teams-grid"></div>
+    </div>
+
+    <!-- RESULTADO -->
+    <div id="result-screen" class="screen">
+        <h2 id="result-title">¡Fin del partido!</h2>
+        <div class="result-score" id="result-score-text">0 - 0</div>
+        <div class="result-teams" style="display:flex; align-items:center; gap:20px; margin-bottom:10px;">
+            <span id="result-name-a" class="rt-name" style="font-family:'Luckiest Guy', cursive; font-size:20px;"></span>
+            <span style="color:rgba(255,255,255,.3)">vs</span>
+            <span id="result-name-b" class="rt-name" style="font-family:'Luckiest Guy', cursive; font-size:20px;"></span>
+        </div>
+        <div class="result-scorers-container" style="display:flex; gap:40px; margin:20px 0; width:100%; max-width:600px;">
+            <div id="result-scorers-a" style="flex:1; text-align:right; color:#ffd43b; font-family:'Luckiest Guy', cursive; font-size:16px; line-height:1.4;"></div>
+            <div id="result-scorers-b" style="flex:1; text-align:left; color:#4dabf7; font-family:'Luckiest Guy', cursive; font-size:16px; line-height:1.4;"></div>
+        </div>
+        <button class="menu-btn" id="btn-result-menu">VOLVER AL MENÚ</button>
+    </div>
+
+    <!-- CONFIGURACIÓN -->
+    <div id="settings-screen" class="screen">
+        <h2 class="screen-title">Configuración</h2>
+        <div class="settings-container">
+            <div class="setting-item">
+                <label>Dificultad IA</label>
+                <div class="segmented-control" id="setting-difficulty">
+                    <button class="segment" data-value="0.7">Fácil</button>
+                    <button class="segment active" data-value="1.0">Normal</button>
+                    <button class="segment" data-value="1.5">Difícil</button>
+                </div>
+            </div>
+        </div>
+        <button class="menu-btn btn-gold" id="btn-settings-back">Guardar y Volver</button>
+    </div>
+
+    <!-- CANVAS DEL JUEGO -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- UI DEL PARTIDO -->
+    <div id="game-ui">
+        <div class="scoreboard">
+            <div class="sb-team" id="sb-team-a">
+                <img id="badge-a" class="sb-badge" src="" alt="">
+                <span id="name-a" class="sb-name"></span>
+                <span id="score-a" class="sb-score">0</span>
+            </div>
+            <span id="sb-sep" class="sb-separator">–</span>
+            <div class="sb-team" id="sb-team-b">
+                <span id="score-b" class="sb-score">0</span>
+                <span id="name-b" class="sb-name"></span>
+                <img id="badge-b" class="sb-badge" src="" alt="">
+            </div>
+        </div>
+        <div id="match-time-container" class="match-time-bottom"><span id="match-time">00'</span></div>
+        <div id="possession-widget">
+            <div class="poss-labels">
+                <span id="poss-text-home">50%</span>
+                <span style="font-size:9px; letter-spacing:1px; opacity:0.6;">POSESIÓN</span>
+                <span id="poss-text-away">50%</span>
+            </div>
+            <div class="poss-bar-bg">
+                <div id="possession-home" style="width: 50%;"></div>
+                <div id="possession-away" style="width: 50%;"></div>
+            </div>
+        </div>
+        <div id="stadium-label" class="stadium-name"></div>
+        <div id="scorers-display" class="scorers-display"></div>
+        <div id="game-message">¡GOL!</div>
+        <div id="countdown-display" class="countdown-display"></div>
+        <div class="controls-hint">PC: WASD Mover | Espacio: Tiro (mantener) / Pase</div>
+        <div class="game-btn-group">
+            <button class="btn-fullscreen" id="btn-fullscreen-game">⛶</button>
+            <button class="btn-tactic-game" id="btn-tactic-game" style="display:none">📋</button>
+            <button class="btn-end-match" id="btn-end-match">✕</button>
+        </div>
+    </div>
+
+    <script src="equipos-inline.js"></script>
+    <script src="game-data.js"></script>
+    <script src="league-engine.js"></script>
+    <script src="game-engine.js"></script>
+    <script src="game-ui.js"></script>
+    <!-- OVERLAY ORIENTACIÓN -->
+    <div id="orientation-overlay">
+        <div style="text-align:center; background:#fff; padding:30px; border-radius:30px; border:8px solid #000; box-shadow:0 10px 0 #000">
+            <div style="font-size:60px; margin-bottom:20px">🔄</div>
+            <h2 style="font-family:'Luckiest Guy', cursive; color:#e53935; text-shadow:none">GIRA TU DISPOSITIVO</h2>
+            <p style="font-family:'Outfit', sans-serif; font-weight:900; color:#000">Guajinos se juega mejor en horizontal</p>
+        </div>
+    </div>
+
+    <!-- MODAL INSTALACIÓN PWA -->
+    <div id="pwa-install-modal" class="screen" style="background:rgba(0,0,0,0.8); z-index:10000; display:none; align-items:center; justify-content:center; padding:20px">
+        <div style="background:#fff; padding:30px; border-radius:25px; border:6px solid #000; max-width:400px; width:100%; color:#000; text-align:center">
+            <div style="font-size:50px; margin-bottom:15px">📱</div>
+            <h2 style="font-family:'Luckiest Guy', cursive; margin-bottom:10px">INSTALAR GUAJINOS</h2>
+            <div id="pwa-instructions-android" style="display:none">
+                <p>1. Pulsa en los tres puntos <b>(⋮)</b> del navegador.</p>
+                <p>2. Selecciona <b>"Instalar aplicación"</b> o "Añadir a pantalla de inicio".</p>
+            </div>
+            <div id="pwa-instructions-ios" style="display:none">
+                <p>1. Pulsa el botón de <b>Compartir</b> <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'><path d='M25 5v25M15 15l10-10 10 10M10 25v15h30V25' fill='none' stroke='black' stroke-width='3'/></svg>" style="width:20px; vertical-align:middle">.</p>
+                <p>2. Busca y selecciona <b>"Añadir a la pantalla de inicio"</b>.</p>
+            </div>
+            <button class="menu-btn" onclick="document.getElementById('pwa-install-modal').style.display='none'" style="margin-top:20px">ENTENDIDO</button>
+        </div>
+    </div>
+</body>
+</html>

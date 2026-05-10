@@ -1,0 +1,156 @@
+// ===== MOTOR DE LIGA =====
+let leagueState = null;
+
+function loadLeagueState() {
+    const saved = localStorage.getItem('superLiquidSoccer_league');
+    if (saved) {
+        try {
+            leagueState = JSON.parse(saved);
+        } catch(e) {
+            console.error("Error loading league state", e);
+            leagueState = null;
+        }
+    } else {
+        leagueState = null;
+    }
+    return leagueState;
+}
+
+function saveLeagueState() {
+    if (leagueState) {
+        localStorage.setItem('superLiquidSoccer_league', JSON.stringify(leagueState));
+    }
+}
+
+function deleteLeagueState() {
+    localStorage.removeItem('superLiquidSoccer_league');
+    leagueState = null;
+}
+
+function createLeague(leagueId, userTeamId, teams) {
+    // Generate Round Robin Fixture
+    const schedule = generateFixture(teams);
+    
+    // Initialize Standings
+    const standings = teams.map(t => ({
+        teamId: t.nombre,
+        pts: 0, pld: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0
+    }));
+
+    leagueState = {
+        leagueId: leagueId,
+        userTeamId: userTeamId,
+        currentMatchday: 1,
+        standings: standings,
+        schedule: schedule
+    };
+    
+    saveLeagueState();
+    return leagueState;
+}
+
+function generateFixture(teamsArray) {
+    const teams = teamsArray.map(t => t.nombre);
+    if (teams.length % 2 !== 0) {
+        teams.push(null); // Bye
+    }
+    const numDays = teams.length - 1;
+    const halfSize = teams.length / 2;
+    const schedule = [];
+
+    const teamsCopy = [...teams];
+    teamsCopy.splice(0, 1);
+
+    for (let day = 0; day < numDays; day++) {
+        const matchday = { matchday: day + 1, matches: [] };
+        const teamIdx = day % teamsCopy.length;
+        
+        let home = teams[0];
+        let away = teamsCopy[teamIdx];
+        if (day % 2 === 0) {
+            home = teamsCopy[teamIdx];
+            away = teams[0];
+        }
+        if (home !== null && away !== null) {
+            matchday.matches.push({ home, away, played: false, homeScore: null, awayScore: null, scorers: [] });
+        }
+
+        for (let idx = 1; idx < halfSize; idx++) {
+            const firstTeam = (day + idx) % teamsCopy.length;
+            const secondTeam = (day  + teamsCopy.length - idx) % teamsCopy.length;
+            if (teamsCopy[firstTeam] !== null && teamsCopy[secondTeam] !== null) {
+                matchday.matches.push({
+                    home: teamsCopy[firstTeam],
+                    away: teamsCopy[secondTeam],
+                    played: false, homeScore: null, awayScore: null, scorers: []
+                });
+            }
+        }
+        schedule.push(matchday);
+    }
+    return schedule;
+}
+
+function updateStandings() {
+    if (!leagueState) return;
+    
+    // Reset standings
+    leagueState.standings.forEach(s => {
+        s.pts = 0; s.pld = 0; s.w = 0; s.d = 0; s.l = 0; s.gf = 0; s.ga = 0; s.gd = 0;
+    });
+
+    leagueState.schedule.forEach(day => {
+        day.matches.forEach(m => {
+            if (m.played) {
+                const homeStats = leagueState.standings.find(s => s.teamId === m.home);
+                const awayStats = leagueState.standings.find(s => s.teamId === m.away);
+                
+                if (homeStats && awayStats) {
+                    homeStats.pld++; awayStats.pld++;
+                    homeStats.gf += m.homeScore; homeStats.ga += m.awayScore;
+                    awayStats.gf += m.awayScore; awayStats.ga += m.homeScore;
+                    
+                    if (m.homeScore > m.awayScore) {
+                        homeStats.w++; awayStats.l++; homeStats.pts += 3;
+                    } else if (m.homeScore < m.awayScore) {
+                        awayStats.w++; homeStats.l++; awayStats.pts += 3;
+                    } else {
+                        homeStats.d++; awayStats.d++; homeStats.pts += 1; awayStats.pts += 1;
+                    }
+                    
+                    homeStats.gd = homeStats.gf - homeStats.ga;
+                    awayStats.gd = awayStats.gf - awayStats.ga;
+                }
+            }
+        });
+    });
+
+    // Sort standings
+    leagueState.standings.sort((a, b) => {
+        if (b.pts !== a.pts) return b.pts - a.pts;
+        if (b.gd !== a.gd) return b.gd - a.gd;
+        return b.gf - a.gf;
+    });
+    
+    saveLeagueState();
+}
+
+function simulateMatch(homeTeamName, awayTeamName) {
+    const homeScore = Math.floor(Math.random() * 4);
+    const awayScore = Math.floor(Math.random() * 4);
+    const matchScorers = [];
+
+    const homeTeam = typeof teamsData !== 'undefined' ? teamsData.find(t => t.nombre === homeTeamName) : null;
+    const awayTeam = typeof teamsData !== 'undefined' ? teamsData.find(t => t.nombre === awayTeamName) : null;
+
+    for (let i = 0; i < homeScore; i++) {
+        const player = homeTeam && homeTeam.jugadores.length ? homeTeam.jugadores[Math.floor(Math.random() * homeTeam.jugadores.length)] : 'Local';
+        matchScorers.push({ team: 'home', name: player.split(',')[0].trim() });
+    }
+    for (let i = 0; i < awayScore; i++) {
+        const player = awayTeam && awayTeam.jugadores.length ? awayTeam.jugadores[Math.floor(Math.random() * awayTeam.jugadores.length)] : 'Visitante';
+        matchScorers.push({ team: 'away', name: player.split(',')[0].trim() });
+    }
+
+    return { homeScore, awayScore, scorers: matchScorers };
+}
