@@ -23,7 +23,34 @@ let localScorers = [];
 let rivalScorers = [];
 let possessionStats = { home: 0, away: 0 };
 
-function stopGame(){ gameState='idle'; if(matchTimerInterval) clearInterval(matchTimerInterval); matchTimerInterval=null; }
+// Screen Wake Lock API
+let wakeLock = null;
+async function requestWakeLock() {
+    try {
+        if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            wakeLock.addEventListener('release', () => {
+                console.log('Wake Lock was released');
+            });
+        }
+    } catch (err) {
+        console.error(`${err.name}, ${err.message}`);
+    }
+}
+
+function releaseWakeLock() {
+    if (wakeLock !== null) {
+        wakeLock.release();
+        wakeLock = null;
+    }
+}
+
+function stopGame(){ 
+    gameState='idle'; 
+    if(matchTimerInterval) clearInterval(matchTimerInterval); 
+    matchTimerInterval=null; 
+    releaseWakeLock();
+}
 
 function pauseGame(){ if(gameState==='playing'||gameState==='countdown'){ gameState='paused' } }
 
@@ -578,6 +605,7 @@ function initGame(team, lineupData, rival, rivalLineup, mode, diff, tactic, simu
 
     resize();
     initAudio();
+    requestWakeLock();
     ball = new Ball();
     players = [];
     if (simulate) positionForKickoff();

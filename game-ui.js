@@ -1353,4 +1353,16 @@ window.addEventListener('load', () => {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error:', err));
     }
+
+    // Botón Salir del Partido (X)
+    const btnEndMatch = document.getElementById('btn-end-match');
+    if (btnEndMatch) {
+        btnEndMatch.addEventListener('click', () => {
+            triggerHaptic('heavy');
+            if (confirm('¿Abandonar el partido?')) {
+                stopGame();
+                goToMenu();
+            }
+        });
+    }
 });
