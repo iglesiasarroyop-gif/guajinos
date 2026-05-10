@@ -133,7 +133,16 @@ class Ball{
 function positionForKickoff() {
     if (!players.length || !ball) return;
 
-    const kickoffPlayer = players.find(p => p.team === kickoffTeam && !p.isGoalie && !p.isEmergencyGoalkeeper);
+    // Seleccionar al jugador más adelantado (el delantero) para el saque
+    const candidates = players.filter(p => p.team === kickoffTeam && !p.isGoalie && !p.isEmergencyGoalkeeper);
+    let kickoffPlayer = null;
+    if (kickoffTeam === 0) {
+        // Para equipo local, el que tenga mayor baseRelX es el más adelantado
+        kickoffPlayer = candidates.reduce((prev, curr) => (prev.baseRelX > curr.baseRelX) ? prev : curr);
+    } else {
+        // Para equipo rival, el que tenga menor baseRelX es el más adelantado
+        kickoffPlayer = candidates.reduce((prev, curr) => (prev.baseRelX < curr.baseRelX) ? prev : curr);
+    }
 
     players.forEach(p => {
         if (p.isGoalie || p.isEmergencyGoalkeeper) return;
@@ -1453,8 +1462,9 @@ function resize() {
     width = canvas.width = window.innerWidth;
     height = canvas.height = window.innerHeight;
     
-    // Calcular escala dinámica: base es 450px de altura
-    pixelScale = Math.max(0.8, Math.min(2.0, height / 450));
+    // Calcular escala dinámica optimizada para PC y Tablet
+    // Subimos la base de 450 a 320 para que en PC se vea más grande
+    pixelScale = Math.max(1.1, Math.min(2.8, height / 320));
     
     // Actualizar objetos existentes si los hay
     if (ball) ball.reset();
