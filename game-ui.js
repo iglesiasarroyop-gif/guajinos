@@ -1346,13 +1346,30 @@ function drawBabyFront(ctx, shirtColor, pantsColor, headColor, time = 0, forcedH
 
 // Iniciar estado PWA y volver al menú
 window.addEventListener('load', () => {
-    checkPWAStatus();
-    goToMenu();
-    
-    // Registro de Service Worker para PWA completa
+    // Registro de Service Worker para PWA completa y auto-recarga
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error:', err));
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+            reg.onupdatefound = () => {
+                const installingWorker = reg.installing;
+                installingWorker.onstatechange = () => {
+                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        // Nueva versión lista, recargar
+                        window.location.reload();
+                    }
+                };
+            };
+        }).catch(err => console.log('SW error:', err));
+        
+        // Recargar si el SW cambia (v2, v3...)
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+                window.location.reload();
+                refreshing = true;
+            }
+        });
     }
+    console.log("⚽ Guajinos V2 - Sistema de detección cargado");
 
     // Lógica de Splash y Promoción PWA
     const splash = document.getElementById('pwa-splash');
@@ -1436,4 +1453,8 @@ window.addEventListener('load', () => {
             abandonModal.style.display = 'none';
         });
     }
+
+    // Inicializar estado final
+    checkPWAStatus();
+    goToMenu();
 });
