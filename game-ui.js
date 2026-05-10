@@ -1362,7 +1362,7 @@ window.addEventListener('load', () => {
     const btnShowInstallHelp = document.getElementById('btn-show-install-help');
     
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 0 && !window.MSStream);
 
     if (splash) {
         // Determinar qué estado mostrar

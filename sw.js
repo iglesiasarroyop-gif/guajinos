@@ -1,4 +1,4 @@
-const CACHE_NAME = 'guajinos-v1';
+const CACHE_NAME = 'guajinos-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -13,6 +13,17 @@ const ASSETS = [
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.filter((cacheName) => cacheName !== CACHE_NAME)
+          .map((cacheName) => caches.delete(cacheName))
+      );
+    })
   );
 });
 
