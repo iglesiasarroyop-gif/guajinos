@@ -1369,7 +1369,7 @@ window.addEventListener('load', () => {
             }
         });
     }
-    console.log("⚽ Guajinos V2 - Sistema de detección cargado");
+    console.log("⚽ Guajinos V2.2 - Sistema de detección cargado");
 
     // Lógica de Splash y Promoción PWA
     const splash = document.getElementById('pwa-splash');

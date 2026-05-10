@@ -1,4 +1,4 @@
-const CACHE_NAME = 'guajinos-v2';
+const CACHE_NAME = 'guajinos-v3';
 const ASSETS = [
   './',
   './index.html',
