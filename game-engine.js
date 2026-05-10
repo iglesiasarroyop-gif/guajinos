@@ -2,6 +2,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 let width, height, score, gameState='idle', matchTime=0, matchTimerInterval=null, countdownValue=0, countdownInterval=null;
+let pixelScale = 1; // Factor de escala para jugadores/balón según resolución
 let isTouchDevice = false;
 window.addEventListener('touchstart', function onFirstTouch() {
     isTouchDevice = true;
@@ -55,8 +56,18 @@ function stopGame(){
 function pauseGame(){ if(gameState==='playing'||gameState==='countdown'){ gameState='paused' } }
 
 class Ball{
-    constructor(){this.radius=5.5;this.gravity=.3;this.bounce=.6;this.frictionGround=.975;this.frictionAir=.99;this.reset()}
+    constructor(){
+        this.baseRadius=5.5;
+        this.radius=this.baseRadius * pixelScale;
+        this.gravity=.3 * pixelScale;
+        this.bounce=.6;
+        this.frictionGround=.975;
+        this.frictionAir=.99;
+        this.reset();
+    }
     reset(){
+        this.radius = this.baseRadius * pixelScale;
+        this.gravity = .3 * pixelScale;
         this.x=width/2;
         this.y=height/2;
         this.z=0;this.vx=0;this.vy=0;this.vz=0;
@@ -114,7 +125,7 @@ class Ball{
     }
     draw(c){
         const ss=Math.max(.2,1-this.z*.01);
-        c.beginPath();c.ellipse(this.x,this.y+5,this.radius*ss,(this.radius/2)*ss,0,0,Math.PI*2);c.fillStyle='rgba(0,0,0,0.3)';c.fill();
+        c.beginPath();c.ellipse(this.x,this.y + 5 * pixelScale,this.radius*ss,(this.radius/2)*ss,0,0,Math.PI*2);c.fillStyle='rgba(0,0,0,0.3)';c.fill();
         c.beginPath();c.arc(this.x,this.y-this.z,this.radius,0,Math.PI*2);c.fillStyle='#fff';c.fill();c.strokeStyle='#000';c.lineWidth=0.5;c.stroke();c.lineWidth=1;
     }
 }
@@ -234,14 +245,16 @@ function refreshPlayersForTactic(lineupData, tactic, shirtColor, pantsColor) {
 
 class Player{
     constructor(name,role,relX,relY,team,isGoalie,shirtColor,pantsColor,headColor){
-        this.name=name;this.fullName = name; // Guardar original para iniciales
+        this.name=name;this.fullName = name;
         this.role=role;this.baseRelX=relX;this.baseRelY=relY;
-        this.radius=11;this.team=team;this.shirtColor=shirtColor||'#4dabf7';this.pantsColor=pantsColor||'#0b2b5e';
+        this.radius=11 * pixelScale;
+        this.team=team;this.shirtColor=shirtColor||'#4dabf7';this.pantsColor=pantsColor||'#0b2b5e';
         
         const skinColors = ['#ffccaa', '#f1c27d', '#e0ac69', '#8d5524', '#c68642'];
         this.headColor=skinColors[Math.floor(Math.random()*skinColors.length)];
         
-        this.isGoalie=isGoalie;this.isUser=false;this.isEmergencyGoalkeeper=false;this.baseMaxSpeed=isGoalie?2.2:3.8;
+        this.isGoalie=isGoalie;this.isUser=false;this.isEmergencyGoalkeeper=false;
+        this.baseMaxSpeed=(isGoalie?2.2:3.8) * pixelScale;
         this.walkPhase=0;
         this.tears = [];
         this.speechBubble = null;
@@ -257,6 +270,8 @@ class Player{
         return this.baseMaxSpeed;
     }
     reset(){
+        this.radius = 11 * pixelScale;
+        this.baseMaxSpeed = (this.isGoalie ? 2.2 : 3.8) * pixelScale;
         this.x=width*this.baseRelX;this.y=height*this.baseRelY;this.vx=0;this.vy=0;this.angle=this.team===0?0:Math.PI;
     }
     getHomePosition(teamHasBall){
@@ -365,11 +380,11 @@ class Player{
         const isLoser = gameState === 'end_celebration' && ((score[0] > score[1] && this.team === 1) || (score[1] > score[0] && this.team === 0));
         
         // Sombra base
-        c.beginPath();c.ellipse(this.x,this.y+10,this.radius,4,0,0,Math.PI*2);c.fillStyle='rgba(0,0,0,0.2)';c.fill();
+        c.beginPath();c.ellipse(this.x,this.y + 10 * pixelScale,this.radius,4 * pixelScale,0,0,Math.PI*2);c.fillStyle='rgba(0,0,0,0.2)';c.fill();
         
         // Indicador de selección
         if(this.isUser){
-            c.beginPath();c.ellipse(this.x,this.y+12,16,7,0,0,Math.PI*2);
+            c.beginPath();c.ellipse(this.x,this.y + 12 * pixelScale, 16 * pixelScale, 7 * pixelScale,0,0,Math.PI*2);
             c.fillStyle='rgba(255,255,255,0.3)';c.fill();
             c.strokeStyle='rgba(255,255,255,0.8)';c.lineWidth=2;c.stroke();
         }
@@ -377,10 +392,10 @@ class Player{
         const scoredTeam = gameState === 'goal' ? (kickoffTeam === 1 ? 0 : 1) : -1;
         const winnerTeam = (gameState === 'end_celebration') ? (score[0] > score[1] ? 0 : (score[1] > score[0] ? 1 : -1)) : -1;
         const isCelebrating = (this.team === scoredTeam) || (this.team === winnerTeam);
-        const jumpY = isCelebrating ? Math.abs(Math.sin(Date.now() * 0.015)) * 10 : 0;
+        const jumpY = isCelebrating ? Math.abs(Math.sin(Date.now() * 0.015)) * 10 * pixelScale : 0;
 
         c.save();
-        c.translate(this.x, this.y - jumpY + 5);
+        c.translate(this.x, this.y - jumpY + 5 * pixelScale);
         c.scale(0.66, 0.66);
         c.rotate(this.angle);
         c.lineWidth = 1.5;
@@ -1434,6 +1449,16 @@ function draw(){
     }
 }
 
-function resize(){width=window.innerWidth;height=window.innerHeight;canvas.width=width;canvas.height=height}
+function resize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+    
+    // Calcular escala dinámica: base es 450px de altura
+    pixelScale = Math.max(0.8, Math.min(2.0, height / 450));
+    
+    // Actualizar objetos existentes si los hay
+    if (ball) ball.reset();
+    players.forEach(p => p.reset());
+}
 function loop(){update();draw();requestAnimationFrame(loop)}
 window.addEventListener('resize',resize);resize();loop();
