@@ -1,4 +1,4 @@
-const CACHE_NAME = 'guajinos-v3';
+const CACHE_NAME = 'guajinos-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -7,7 +7,8 @@ const ASSETS = [
   './game-ui.js',
   './game-data.js',
   './league-engine.js',
-  './equipos-inline.js'
+  './equipos-inline.js',
+  './menu_background_v2.png'
 ];
 
 self.addEventListener('install', (e) => {

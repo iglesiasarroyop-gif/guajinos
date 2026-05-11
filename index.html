@@ -19,7 +19,20 @@
     <link rel="stylesheet" href="styles.css?v=3">
     
     <!-- El Manifest para PWA -->
-    <link rel="manifest" href="manifest.json?v=3">
+    <link rel="manifest" href="manifest.json?v=4">
+    <script>
+        // Force refresh if version mismatch
+        const CURRENT_VERSION = '2.4.1';
+        if (localStorage.getItem('app_version') !== CURRENT_VERSION) {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    for (let registration of registrations) registration.unregister();
+                });
+            }
+            localStorage.setItem('app_version', CURRENT_VERSION);
+            location.reload(true);
+        }
+    </script>
 </head>
 <body>
 
@@ -31,7 +44,7 @@
         
         <div class="menu-content-wrapper">
             <div class="menu-header">
-                <h1 class="premium-title">GUAJIN<span>⚽</span>S</h1>
+                <h1 class="premium-title">GUAJINOS <span>PREMIUM</span></h1>
                 <div class="premium-subtitle">SIMULADOR DE FÚTBOL BASE</div>
             </div>
 
