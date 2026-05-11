@@ -1,7 +1,7 @@
 // ===== MOTOR DEL JUEGO =====
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-let width, height, score, gameState='idle', matchTime=0, matchTimerInterval=null, countdownValue=0, countdownInterval=null;
+let width, height, score, gameState='idle', matchTime=0, matchTimerInterval=null, countdownValue=0, countdownInterval=null, goalTimeout=null;
 let pixelScale = 1; // Factor de escala para jugadores/balón según resolución
 let isTouchDevice = false;
 window.addEventListener('touchstart', function onFirstTouch() {
@@ -112,8 +112,10 @@ function stopGame(){
     gameState='idle'; 
     if(matchTimerInterval) clearInterval(matchTimerInterval); 
     matchTimerInterval=null; 
+    if(goalTimeout) clearTimeout(goalTimeout);
+    goalTimeout = null;
     stopAmbientMusic();
-    playMenuMusic();
+    if(gameState === 'idle') playMenuMusic();
     releaseWakeLock();
 }
 
@@ -903,6 +905,8 @@ function endMatch() {
     gameState = 'idle';
     if (matchTimerInterval) clearInterval(matchTimerInterval);
     if (countdownInterval) clearInterval(countdownInterval);
+    if (goalTimeout) clearTimeout(goalTimeout);
+    goalTimeout = null;
     stopAmbientMusic();
     playMenuMusic();
     clearScorersDisplay();
@@ -1013,7 +1017,9 @@ function scoreGoal(teamIndex) {
     const msgEl = document.getElementById('game-message');
     msgEl.style.display = 'block';
     kickoffTeam = teamIndex === 0 ? 1 : 0;
-    setTimeout(() => {
+    if (goalTimeout) clearTimeout(goalTimeout);
+    goalTimeout = setTimeout(() => {
+        if (gameState !== 'goal') return;
         msgEl.style.display = 'none';
         stopGoalSound();
         players.forEach(p => p.reset());
@@ -1027,6 +1033,10 @@ function scoreGoal(teamIndex) {
         cd.textContent = '3';
         if (countdownInterval) clearInterval(countdownInterval);
         countdownInterval = setInterval(() => {
+            if (gameState !== 'countdown') {
+                clearInterval(countdownInterval);
+                return;
+            }
             countdownValue--;
             if (countdownValue > 0) {
                 cd.textContent = countdownValue;
@@ -1037,6 +1047,7 @@ function scoreGoal(teamIndex) {
                 gameState = 'playing';
             }
         }, 1000);
+        goalTimeout = null;
     }, 4000);
 }
 
@@ -1444,13 +1455,16 @@ function update(){
             }
         }
         
-        if(entranceTimer > 350 && allInPosition) {
+        if(entranceTimer > 350 && (allInPosition || entranceTimer > 800)) {
             positionForKickoff();
             gameState = 'countdown';
             countdownValue = 3;
             playWhistle();
             const cd = document.getElementById('countdown-display');
-            cd.style.display = 'block'; cd.textContent = '3';
+            if (cd) {
+                cd.style.display = 'block'; 
+                cd.textContent = '3';
+            }
         }
         return;
     }
