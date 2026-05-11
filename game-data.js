@@ -138,6 +138,9 @@ const gameConfig = {
     difficulty: 1.0
 };
 
+const AMBIENT_MUSIC_PATH = "musica/ambiente.mp3";
+const GOAL_SOUND_PATH = "musica/gol.mp3";
+
 async function loadTeams() {
     teamsData = EQUIPOS_INLINE.equipos.filter(e => e.jugadores && e.jugadores.length >= 7 && e.estado !== 'Pendiente de renovación');
     return teamsData;

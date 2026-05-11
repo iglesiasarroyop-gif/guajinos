@@ -23,6 +23,40 @@ let kickoffTeam = 0;
 let localScorers = [];
 let rivalScorers = [];
 let possessionStats = { home: 0, away: 0 };
+let bgMusic = null;
+let goalSound = null;
+
+function playAmbientMusic() {
+    if (!bgMusic) {
+        bgMusic = new Audio(typeof AMBIENT_MUSIC_PATH !== 'undefined' ? AMBIENT_MUSIC_PATH : 'musica/ambiente.mp3');
+        bgMusic.loop = true;
+        bgMusic.volume = 0.4;
+    }
+    bgMusic.play().catch(e => console.log("Autoplay bloqueado o error de audio:", e));
+}
+
+function stopAmbientMusic() {
+    if (bgMusic) {
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
+    }
+}
+
+function playGoalSound() {
+    if (!goalSound) {
+        goalSound = new Audio(typeof GOAL_SOUND_PATH !== 'undefined' ? GOAL_SOUND_PATH : 'musica/gol.mp3');
+        goalSound.loop = true;
+        goalSound.volume = 0.6;
+    }
+    goalSound.play().catch(e => console.log("Error al reproducir sonido de gol:", e));
+}
+
+function stopGoalSound() {
+    if (goalSound) {
+        goalSound.pause();
+        goalSound.currentTime = 0;
+    }
+}
 
 // Screen Wake Lock API
 let wakeLock = null;
@@ -50,6 +84,7 @@ function stopGame(){
     gameState='idle'; 
     if(matchTimerInterval) clearInterval(matchTimerInterval); 
     matchTimerInterval=null; 
+    stopAmbientMusic();
     releaseWakeLock();
 }
 
@@ -134,7 +169,12 @@ function positionForKickoff() {
     if (!players.length || !ball) return;
 
     // Seleccionar al jugador más adelantado (el delantero) para el saque
-    const candidates = players.filter(p => p.team === kickoffTeam && !p.isGoalie && !p.isEmergencyGoalkeeper);
+    let candidates = players.filter(p => p.team === kickoffTeam && !p.isGoalie && !p.isEmergencyGoalkeeper);
+    
+    // Priorizar jugadores con rol de atacante si existen
+    const strikers = candidates.filter(p => p.role === 'attacker' || p.role === 'forward');
+    if (strikers.length > 0) candidates = strikers;
+
     let kickoffPlayer = null;
     if (kickoffTeam === 0) {
         // Para equipo local, el que tenga mayor baseRelX es el más adelantado
@@ -411,7 +451,7 @@ class Player{
         c.strokeStyle = '#000';
         
         const actualRadius = this.radius;
-        this.radius = 16;
+        this.radius = 16 * pixelScale;
 
         // Pies flotantes - Botas Adidas Negras
         const footY = 10;
@@ -629,6 +669,7 @@ function initGame(team, lineupData, rival, rivalLineup, mode, diff, tactic, simu
 
     resize();
     initAudio();
+    playAmbientMusic();
     requestWakeLock();
     ball = new Ball();
     players = [];
@@ -833,6 +874,7 @@ function endMatch() {
     gameState = 'idle';
     if (matchTimerInterval) clearInterval(matchTimerInterval);
     if (countdownInterval) clearInterval(countdownInterval);
+    stopAmbientMusic();
     clearScorersDisplay();
     document.getElementById('game-ui').classList.remove('active');
     const rs = document.getElementById('result-screen');
@@ -922,6 +964,7 @@ function scoreGoal(teamIndex) {
     gameState = 'goal';
     score[teamIndex]++;
     triggerHaptic('goal');
+    playGoalSound();
 
     players.forEach(p => { p.vx = 0; p.vy = 0; });
     goalScorer = currentPossessor && currentPossessor.team === teamIndex ? currentPossessor : players.filter(p => p.team === teamIndex && !p.isGoalie).reduce((best, p) => (!best || Math.hypot(p.x - ball.x, p.y - ball.y) < Math.hypot(best.x - ball.x, best.y - ball.y) ? p : best), null);
@@ -942,6 +985,7 @@ function scoreGoal(teamIndex) {
     kickoffTeam = teamIndex === 0 ? 1 : 0;
     setTimeout(() => {
         msgEl.style.display = 'none';
+        stopGoalSound();
         players.forEach(p => p.reset());
         ball.reset();
         positionForKickoff();
@@ -1350,8 +1394,9 @@ function update(){
             }
             
             const dx = tx - p.x; const dy = ty - p.y; const dist = Math.hypot(dx,dy);
-            if(dist > 2){
-                p.vx = (dx/dist)*1.8; p.vy = (dy/dist)*1.8; p.x+=p.vx; p.y+=p.vy;
+            const speed = 2.5 * pixelScale;
+            if(dist > 5){
+                p.vx = (dx/dist)*speed; p.vy = (dy/dist)*speed; p.x+=p.vx; p.y+=p.vy;
                 if(entranceTimer < 200 || entranceTimer >= 300) p.angle = Math.atan2(dy,dx);
                 allInPosition = false;
             } else {
@@ -1463,8 +1508,8 @@ function resize() {
     height = canvas.height = window.innerHeight;
     
     // Calcular escala dinámica optimizada para PC y Tablet
-    // Subimos la base de 450 a 320 para que en PC se vea más grande
-    pixelScale = Math.max(1.1, Math.min(2.8, height / 320));
+    // Limitamos la escala en pantallas muy grandes para que no se vea "gigante"
+    pixelScale = Math.max(1.0, Math.min(2.2, height / 450));
     
     // Actualizar objetos existentes si los hay
     if (ball) ball.reset();

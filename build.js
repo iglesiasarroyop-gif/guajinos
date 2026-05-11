@@ -48,7 +48,35 @@ async function build() {
     console.log(`✅ ${embedded}/${uniquePaths.length} escudos embebidos`);
 
     // 3. Concatenar todo el JS
-    const allJs = [inlineJsProcessed, dataJs, leagueJs, uiJs, engineJs].join('\n');
+    let allJs = [inlineJsProcessed, dataJs, leagueJs, uiJs, engineJs].join('\n');
+    
+    // 3.1. Embeber música de ambiente como base64
+    console.log('🎵 Embebiendo música de ambiente...');
+    const musicPath = 'musica/ambiente.mp3';
+    const fullMusicPath = path.join(__dirname, musicPath);
+    if (fs.existsSync(fullMusicPath)) {
+        const musicB64 = fs.readFileSync(fullMusicPath).toString('base64');
+        const musicDataUri = `data:audio/mpeg;base64,${musicB64}`;
+        // Reemplazar la ruta por el data URI en el código
+        allJs = allJs.split(musicPath).join(musicDataUri);
+        console.log('✅ Música de ambiente embebida');
+    } else {
+        console.warn(`⚠️  No se encontró el archivo de música en ${musicPath}`);
+    }
+
+    // 3.2. Embeber sonido de gol como base64
+    console.log('⚽ Embebiendo sonido de gol...');
+    const goalPath = 'musica/gol.mp3';
+    const fullGoalPath = path.join(__dirname, goalPath);
+    if (fs.existsSync(fullGoalPath)) {
+        const goalB64 = fs.readFileSync(fullGoalPath).toString('base64');
+        const goalDataUri = `data:audio/mpeg;base64,${goalB64}`;
+        // Reemplazar la ruta por el data URI en el código
+        allJs = allJs.split(goalPath).join(goalDataUri);
+        console.log('✅ Sonido de gol embebido');
+    } else {
+        console.warn(`⚠️  No se encontró el archivo de sonido de gol en ${goalPath}`);
+    }
 
     // 4. Minificar con Terser
     console.log('📦 Minificando JavaScript...');
