@@ -379,7 +379,7 @@
     </div>
 
     <!-- SPLASH INICIAL (PWA/FULLSCREEN) -->
-    <div id="pwa-splash" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(26,34,54,0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index:20000; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition: opacity 0.5s ease">
+    <div id="pwa-splash" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(26,34,54,0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index:20000; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition: opacity 0.5s ease" onclick="closeSplash()">
         <div style="font-size:80px; margin-bottom:20px">⚽</div>
         
         <!-- Estado A: Juego Listo (PC o Instalado) -->
@@ -394,11 +394,11 @@
             <p style="color:#fff; font-family:'Outfit', sans-serif; text-align:center; margin-bottom:30px; opacity:0.9">Para una experiencia a pantalla completa y sin interrupciones, instala Guajinos en tu móvil.</p>
             
             <button class="menu-btn btn-gold" id="btn-show-install-help" style="margin-bottom:20px">CÓMO INSTALAR 📲</button>
-            <div id="btn-skip-install" style="color:rgba(255,255,255,0.6); font-family:'Outfit', sans-serif; text-decoration:underline; font-size:14px">Continuar en el navegador</div>
+            <button class="premium-btn btn-blue" id="btn-skip-install" style="height:60px; font-size:20px; padding:0 40px; margin-top:10px; border: 3px solid #fff" onclick="event.stopPropagation(); closeSplash();">CONTINUAR EN NAVEGADOR</button>
         </div>
 
         <p style="color:#fff; margin-top:40px; font-family:'Outfit', sans-serif; opacity:0.5; font-size:12px" id="pwa-status-text">Optimizado para dispositivos móviles</p>
-        <div style="position:absolute; bottom:10px; right:10px; color:rgba(255,255,255,0.3); font-size:10px; font-family:sans-serif">v2.3</div>
+        <div style="position:absolute; bottom:10px; right:10px; color:rgba(255,255,255,0.3); font-size:10px; font-family:sans-serif">v2.4</div>
     </div>
 </body>
 </html>

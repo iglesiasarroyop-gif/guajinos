@@ -1426,11 +1426,9 @@ window.addEventListener('load', () => {
             }
         };
 
-        // Click en "Toca para empezar" o en el fondo si está listo
+        // Click en cualquier parte para cerrar si está listo o promocionando
         splash.onclick = (e) => {
-            if (splashReady.style.display === 'flex') {
-                closeSplash();
-            }
+            closeSplash();
         };
 
         // Click en "Continuar en el navegador"
