@@ -25,8 +25,10 @@ let rivalScorers = [];
 let possessionStats = { home: 0, away: 0 };
 let bgMusic = null;
 let goalSound = null;
+let menuMusic = null;
 
 function playAmbientMusic() {
+    stopMenuMusic();
     if (!bgMusic) {
         bgMusic = new Audio(typeof AMBIENT_MUSIC_PATH !== 'undefined' ? AMBIENT_MUSIC_PATH : 'musica/ambiente.mp3');
         bgMusic.loop = true;
@@ -58,6 +60,32 @@ function stopGoalSound() {
     }
 }
 
+function playMenuMusic() {
+    if (gameState === 'playing' || gameState === 'goal' || gameState === 'countdown' || gameState === 'entrance') return;
+    if (!menuMusic) {
+        menuMusic = new Audio(typeof MENU_MUSIC_PATH !== 'undefined' ? MENU_MUSIC_PATH : 'musica/fondo.mp3');
+        menuMusic.loop = true;
+        menuMusic.volume = 0.3;
+    }
+    menuMusic.play().catch(e => console.log("Música de menú esperando interacción:", e));
+}
+
+function stopMenuMusic() {
+    if (menuMusic) {
+        menuMusic.pause();
+        menuMusic.currentTime = 0;
+    }
+}
+
+// Iniciar música de menú en la primera interacción
+window.addEventListener('click', () => {
+    if (gameState === 'idle') playMenuMusic();
+}, { once: true });
+
+window.addEventListener('touchstart', () => {
+    if (gameState === 'idle') playMenuMusic();
+}, { once: true });
+
 // Screen Wake Lock API
 let wakeLock = null;
 async function requestWakeLock() {
@@ -85,6 +113,7 @@ function stopGame(){
     if(matchTimerInterval) clearInterval(matchTimerInterval); 
     matchTimerInterval=null; 
     stopAmbientMusic();
+    playMenuMusic();
     releaseWakeLock();
 }
 
@@ -875,6 +904,7 @@ function endMatch() {
     if (matchTimerInterval) clearInterval(matchTimerInterval);
     if (countdownInterval) clearInterval(countdownInterval);
     stopAmbientMusic();
+    playMenuMusic();
     clearScorersDisplay();
     document.getElementById('game-ui').classList.remove('active');
     const rs = document.getElementById('result-screen');

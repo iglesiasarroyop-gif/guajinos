@@ -10,7 +10,7 @@
 
 - **🎮 Jugabilidad Arcade**: Controles sencillos (WASD/Flechas + Espacio) optimizados tanto para PC como para dispositivos móviles.
 - **👶 Estética Baby**: Jugadores cabezones y divertidos con animaciones fluidas y expresiones dinámicas (¡lloran si pierden!).
-- **🎵 Experiencia Inmersiva**: Música de ambiente durante el partido y sonidos de gol personalizados, todo integrado sin dependencias externas.
+- **🎵 Experiencia Inmersiva**: Música de menú (fondo), ambiente durante el partido y sonidos de gol personalizados, todo integrado sin dependencias externas.
 - **🏆 Modo Liga**: Compite en la liga infantil asturiana, sigue la clasificación y lucha por el Pichichi o el Zamora.
 - **📱 PWA Ready**: Instalable en dispositivos móviles para jugar a pantalla completa y sin conexión.
 - **📦 Single File Build**: Proceso de build avanzado que genera un único archivo HTML con todos los assets (imágenes y audio) embebidos en Base64.

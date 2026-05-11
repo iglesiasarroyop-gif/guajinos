@@ -78,6 +78,20 @@ async function build() {
         console.warn(`⚠️  No se encontró el archivo de sonido de gol en ${goalPath}`);
     }
 
+    // 3.3. Embeber música de menú como base64
+    console.log('🎹 Embebiendo música de menú...');
+    const menuMusicPath = 'musica/fondo.mp3';
+    const fullMenuPath = path.join(__dirname, menuMusicPath);
+    if (fs.existsSync(fullMenuPath)) {
+        const menuB64 = fs.readFileSync(fullMenuPath).toString('base64');
+        const menuDataUri = `data:audio/mpeg;base64,${menuB64}`;
+        // Reemplazar la ruta por el data URI en el código
+        allJs = allJs.split(menuMusicPath).join(menuDataUri);
+        console.log('✅ Música de menú embebida');
+    } else {
+        console.warn(`⚠️  No se encontró el archivo de música de menú en ${menuMusicPath}`);
+    }
+
     // 4. Minificar con Terser
     console.log('📦 Minificando JavaScript...');
     const minified = await minify(allJs, {
