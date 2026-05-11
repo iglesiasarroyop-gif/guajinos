@@ -1058,7 +1058,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Configuración — desde lineup y desde partido
     document.getElementById('btn-settings-lineup')?.addEventListener('click', openSettings);
+    document.getElementById('btn-settings-icon')?.addEventListener('click', openSettings);
     document.getElementById('btn-settings-back')?.addEventListener('click', saveSettings);
+
+    // Botón cerrar modal en menú (ocultar interfaz para ver fondo)
+    document.querySelector('.modal-close-btn')?.addEventListener('click', () => {
+        const modal = document.querySelector('.glass-modal');
+        if (modal) {
+            modal.style.transition = 'all 0.5s ease';
+            modal.style.opacity = '0';
+            modal.style.pointerEvents = 'none';
+            modal.style.transform = 'translateY(20px) scale(0.95)';
+            
+            // Crear un botón flotante para recuperar el menú
+            if (!document.getElementById('btn-show-menu')) {
+                const btn = document.createElement('button');
+                btn.id = 'btn-show-menu';
+                btn.innerHTML = 'MOSTRAR MENÚ';
+                btn.className = 'premium-btn btn-blue';
+                btn.style.cssText = 'position:fixed; bottom:100px; width:auto; padding:0 40px; left:50%; transform:translateX(-50%); z-index:100; animation: fadeIn 0.5s ease;';
+                btn.onclick = () => {
+                    modal.style.opacity = '1';
+                    modal.style.pointerEvents = 'auto';
+                    modal.style.transform = 'translateY(0) scale(1)';
+                    btn.remove();
+                };
+                document.body.appendChild(btn);
+            }
+        }
+    });
 
     document.querySelectorAll('.segmented-control').forEach(sc => {
         sc.querySelectorAll('.segment').forEach(seg => {

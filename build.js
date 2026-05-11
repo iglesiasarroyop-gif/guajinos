@@ -125,8 +125,29 @@ async function build() {
         console.log('⚠️  javascript-obfuscator no instalado, usando solo minificación');
     }
 
-    // 6. Minificar CSS
-    const minCss = css
+    // 6. Minificar CSS y embeber imágenes
+    console.log('🎨 Embebiendo imágenes en CSS...');
+    let processedCss = css;
+    const cssImageRegex = /url\(['"]?([^'"]+)['"]?\)/g;
+    let cssMatch;
+    const cssImages = new Set();
+    while ((cssMatch = cssImageRegex.exec(css)) !== null) {
+        cssImages.add(cssMatch[1]);
+    }
+
+    cssImages.forEach(imgPath => {
+        const fullPath = path.join(__dirname, imgPath);
+        if (fs.existsSync(fullPath)) {
+            const ext = path.extname(fullPath).toLowerCase().replace('.', '');
+            const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', svg: 'image/svg+xml' };
+            const mime = mimeMap[ext] || 'image/png';
+            const b64 = fs.readFileSync(fullPath).toString('base64');
+            const dataUri = `data:${mime};base64,${b64}`;
+            processedCss = processedCss.split(imgPath).join(dataUri);
+        }
+    });
+
+    const minCss = processedCss
         .replace(/\/\*[\s\S]*?\*\//g, '')
         .replace(/\s+/g, ' ')
         .replace(/\s*([{}:;,])\s*/g, '$1')
