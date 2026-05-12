@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Super Liquid Soccer</string>
-    <string name="title_activity_main">Super Liquid Soccer</string>
-    <string name="package_name">com.guajinos.sls</string>
-    <string name="custom_url_scheme">com.guajinos.sls</string>
-</resources>
