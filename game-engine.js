@@ -12,6 +12,7 @@ let isCharging=false, chargeStartTime=0, pendingKickTimeout=null, touchShootStar
 let currentPlayer=null, touchShootActive=false, currentPossessor=null, teamA_closest=null, teamB_closest=null, playerChangeCooldown=0, lastTapTime=0, lastTapX=0, lastTapY=0;
 let goalScorer=null;
 let ball, players=[], localTeamData=null, rivalTeamData=null, localStadium='';
+let lastBallX = 0, lastBallY = 0, ballStuckTimer = 0;
 const keys={w:false,a:false,s:false,d:false,arrowup:false,arrowleft:false,arrowdown:false,arrowright:false};
 const touchState={joystickActive:false,joystickOrigin:{x:0,y:0},joystickCurrent:{x:0,y:0},joystickDir:{x:0,y:0}};
 let currentGameMode='match', currentAiDiff=1.0, isSimulation=false;
@@ -46,6 +47,7 @@ function stopAmbientMusic() {
 }
 
 function playGoalSound() {
+    stopBooSound(); // Asegurar que no suenen a la vez
     if (!goalSound) {
         goalSound = new Audio(typeof GOAL_SOUND_PATH !== 'undefined' ? GOAL_SOUND_PATH : 'musica/gol.mp3');
         goalSound.loop = true;
@@ -62,8 +64,10 @@ function stopGoalSound() {
 }
 
 function playBooSound() {
+    stopGoalSound(); // Asegurar que no suenen a la vez
     if (!booSound) {
         booSound = new Audio('musica/boo.mp3');
+        booSound.loop = true; // El usuario quería que fuera como el de gol
         booSound.volume = 0.6;
     }
     booSound.play().catch(e => console.log("Error al reproducir sonido boo:", e));
@@ -213,24 +217,27 @@ class Ball{
     }
 }
 
+function getKickoffPlayer(team) {
+    let candidates = players.filter(p => p.team === team && !p.isGoalie && !p.isEmergencyGoalkeeper);
+    if (!candidates.length) return null;
+    
+    // Buscar delanteros o atacantes
+    const strikers = candidates.filter(p => p.role === 'attacker' || p.role === 'forward' || p.role === 'delantero');
+    const pool = strikers.length > 0 ? strikers : candidates;
+
+    if (team === 0) {
+        // Para local, el más a la derecha (mayor baseRelX)
+        return pool.reduce((prev, curr) => (prev.baseRelX > curr.baseRelX) ? prev : curr, pool[0]);
+    } else {
+        // Para rival, el más a la izquierda (menor baseRelX)
+        return pool.reduce((prev, curr) => (prev.baseRelX < curr.baseRelX) ? prev : curr, pool[0]);
+    }
+}
+
 function positionForKickoff() {
     if (!players.length || !ball) return;
 
-    // Seleccionar al jugador más adelantado (el delantero) para el saque
-    let candidates = players.filter(p => p.team === kickoffTeam && !p.isGoalie && !p.isEmergencyGoalkeeper);
-    
-    // Priorizar jugadores con rol de atacante si existen
-    const strikers = candidates.filter(p => p.role === 'attacker' || p.role === 'forward');
-    if (strikers.length > 0) candidates = strikers;
-
-    let kickoffPlayer = null;
-    if (kickoffTeam === 0) {
-        // Para equipo local, el que tenga mayor baseRelX es el más adelantado
-        kickoffPlayer = candidates.reduce((prev, curr) => (prev.baseRelX > curr.baseRelX) ? prev : curr);
-    } else {
-        // Para equipo rival, el que tenga menor baseRelX es el más adelantado
-        kickoffPlayer = candidates.reduce((prev, curr) => (prev.baseRelX < curr.baseRelX) ? prev : curr);
-    }
+    const kickoffPlayer = getKickoffPlayer(kickoffTeam);
 
     players.forEach(p => {
         if (p.isGoalie || p.isEmergencyGoalkeeper) return;
@@ -1452,7 +1459,7 @@ function update(){
                 if(p.team===0 && tx > width/2 && !p.isGoalie) tx = width/2 - 40;
                 if(p.team===1 && tx < width/2 && !p.isGoalie) tx = width/2 + 40;
                 
-                const kickoffPlayer = players.find(kp => kp.team === kickoffTeam && !kp.isGoalie && !kp.isEmergencyGoalkeeper);
+                const kickoffPlayer = getKickoffPlayer(kickoffTeam);
                 if (p === kickoffPlayer) { tx = width/2; ty = height/2; }
             }
             
@@ -1525,6 +1532,29 @@ function update(){
             }
         }
     }
+
+    // Sistema Anti-Bloqueo
+    const ballMoveDist = Math.hypot(ball.x - lastBallX, ball.y - lastBallY);
+    if (ballMoveDist < 1 && ball.z < 2) {
+        ballStuckTimer++;
+        if (ballStuckTimer > 60) { // Aproximadamente 1 segundo
+            // Aplicar pequeño impulso aleatorio al balón para desbloquear
+            ball.vx += (Math.random() - 0.5) * 2;
+            ball.vy += (Math.random() - 0.5) * 2;
+            // Y a los jugadores cercanos
+            players.forEach(p => {
+                if (Math.hypot(p.x - ball.x, p.y - ball.y) < 50) {
+                    p.vx += (Math.random() - 0.5) * 3;
+                    p.vy += (Math.random() - 0.5) * 3;
+                }
+            });
+            ballStuckTimer = 0;
+        }
+    } else {
+        ballStuckTimer = 0;
+    }
+    lastBallX = ball.x;
+    lastBallY = ball.y;
     for(let iter=0;iter<3;iter++){
         for(let i=0;i<players.length;i++)for(let j=i+1;j<players.length;j++){
             const p1=players[i],p2=players[j];let dx=p2.x-p1.x,dy=p2.y-p1.y,dist=Math.hypot(dx,dy),md=p1.radius+p2.radius;
