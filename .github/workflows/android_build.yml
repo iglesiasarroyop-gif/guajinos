@@ -39,6 +39,8 @@ jobs:
       - name: Sync Capacitor
         run: |
           npx cap add android
+          # Parchear AndroidManifest.xml para forzar horizontal (landscape)
+          sed -i 's/android:name="\.MainActivity"/& android:screenOrientation="landscape"/' android/app/src/main/AndroidManifest.xml
           npx cap sync android
 
       - name: Build APK

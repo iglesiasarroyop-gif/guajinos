@@ -429,36 +429,31 @@
     <!-- SCRIPTS DE CAPACITOR -->
     <script>
         // Bloquear orientación horizontal y gestionar cierre de app
-        window.addEventListener('DOMContentLoaded', async () => {
+        window.addEventListener('load', async () => {
             const cap = window.Capacitor;
             if (cap && cap.Plugins) {
-                // Re-asegurar orientación
+                // Re-asegurar orientación por JS (doble capa de seguridad)
                 if (cap.Plugins.ScreenOrientation) {
                     try {
                         await cap.Plugins.ScreenOrientation.lock({ orientation: 'landscape' });
-                    } catch (e) { console.log(e); }
+                    } catch (e) { console.warn("Orientation lock error:", e); }
                 }
 
-                // Configurar botón salir nativo
+                // Configurar botón salir nativo (sin confirm que pueda bloquear)
                 const exitBtn = document.getElementById('btn-exit-app');
                 if (exitBtn) {
                     exitBtn.onclick = async () => {
-                        if (confirm("¿Seguro que quieres salir de Guajinos?")) {
-                            if (cap.Plugins.App) {
-                                await cap.Plugins.App.exitApp();
-                            } else {
-                                window.close();
-                            }
+                        if (cap.Plugins.App) {
+                            await cap.Plugins.App.exitApp();
+                        } else {
+                            window.close();
                         }
                     };
                 }
             } else {
-                // Si no es Capacitor (navegador), ocultar botón salir o usar window.close
                 const exitBtn = document.getElementById('btn-exit-app');
                 if (exitBtn) {
-                    exitBtn.onclick = () => {
-                        if (confirm("¿Cerrar pestaña?")) window.close();
-                    };
+                    exitBtn.onclick = () => window.close();
                 }
             }
         });

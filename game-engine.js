@@ -64,13 +64,20 @@ function stopGoalSound() {
 }
 
 function playBooSound() {
-    stopGoalSound(); // Asegurar que no suenen a la vez
+    stopGoalSound();
     if (!booSound) {
+        // En Android/Capacitor las rutas a veces necesitan ser relativas al root
         booSound = new Audio('musica/boo.mp3');
-        booSound.loop = true; // El usuario quería que fuera como el de gol
+        booSound.loop = true;
         booSound.volume = 0.6;
     }
-    booSound.play().catch(e => console.log("Error al reproducir sonido boo:", e));
+    // Forzar recarga si no está listo
+    if (booSound.readyState < 2) booSound.load();
+    booSound.play().catch(e => {
+        console.error("Error al reproducir sonido boo:", e);
+        // Reintentar tras un toque si falla por política de autoplay
+        window.addEventListener('click', () => booSound.play(), { once: true });
+    });
 }
 
 function stopBooSound() {
@@ -97,13 +104,22 @@ function stopMenuMusic() {
     }
 }
 
-// Iniciar música de menú en la primera interacción
+// Iniciar música de menú en la primera interacción y precargar boo
 window.addEventListener('click', () => {
     if (gameState === 'idle') playMenuMusic();
+    // Precarga silenciosa para Android
+    if (!booSound) {
+        booSound = new Audio('musica/boo.mp3');
+        booSound.load();
+    }
 }, { once: true });
 
 window.addEventListener('touchstart', () => {
     if (gameState === 'idle') playMenuMusic();
+    if (!booSound) {
+        booSound = new Audio('musica/boo.mp3');
+        booSound.load();
+    }
 }, { once: true });
 
 // Screen Wake Lock API
