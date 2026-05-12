@@ -5,12 +5,17 @@
   "main": "index.js",
   "scripts": {
     "build": "node build.js",
+    "android:sync": "npm run build && copy dist\\super-liquid-soccer.html www\\index.html && npx cap sync",
+    "android:open": "npx cap open android",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/cli": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
     "javascript-obfuscator": "^5.4.2",
     "playwright": "^1.59.1",
     "terser": "^5.46.2"
