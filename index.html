@@ -32,6 +32,15 @@
             localStorage.setItem('app_version', CURRENT_VERSION);
             location.reload(true);
         }
+
+        // Bloquear orientación horizontal lo antes posible
+        (async () => {
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ScreenOrientation) {
+                try {
+                    await window.Capacitor.Plugins.ScreenOrientation.lock({ orientation: 'landscape' });
+                } catch (e) { console.log("Error locking orientation in head:", e); }
+            }
+        })();
     </script>
 </head>
 <body>
@@ -68,6 +77,10 @@
 
                     <button class="premium-btn btn-install" id="id-btn-install-pwa" style="display:none;">
                         <span class="btn-text">INSTALAR APP 📲</span>
+                    </button>
+
+                    <button class="premium-btn btn-exit" id="btn-exit-app" style="background: #e53935; margin-top: 10px;">
+                        <span class="btn-text">SALIR DEL JUEGO</span>
                     </button>
                 </div>
             </div>
@@ -415,13 +428,37 @@
     </div>
     <!-- SCRIPTS DE CAPACITOR -->
     <script>
-        // Bloquear orientación horizontal en dispositivos móviles
+        // Bloquear orientación horizontal y gestionar cierre de app
         window.addEventListener('DOMContentLoaded', async () => {
-            if (window.Capacitor && window.Capacitor.Plugins.ScreenOrientation) {
-                try {
-                    await window.Capacitor.Plugins.ScreenOrientation.lock({ orientation: 'landscape' });
-                } catch (e) {
-                    console.log("No se pudo bloquear la orientación:", e);
+            const cap = window.Capacitor;
+            if (cap && cap.Plugins) {
+                // Re-asegurar orientación
+                if (cap.Plugins.ScreenOrientation) {
+                    try {
+                        await cap.Plugins.ScreenOrientation.lock({ orientation: 'landscape' });
+                    } catch (e) { console.log(e); }
+                }
+
+                // Configurar botón salir nativo
+                const exitBtn = document.getElementById('btn-exit-app');
+                if (exitBtn) {
+                    exitBtn.onclick = async () => {
+                        if (confirm("¿Seguro que quieres salir de Guajinos?")) {
+                            if (cap.Plugins.App) {
+                                await cap.Plugins.App.exitApp();
+                            } else {
+                                window.close();
+                            }
+                        }
+                    };
+                }
+            } else {
+                // Si no es Capacitor (navegador), ocultar botón salir o usar window.close
+                const exitBtn = document.getElementById('btn-exit-app');
+                if (exitBtn) {
+                    exitBtn.onclick = () => {
+                        if (confirm("¿Cerrar pestaña?")) window.close();
+                    };
                 }
             }
         });
