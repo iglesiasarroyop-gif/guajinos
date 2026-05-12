@@ -25,6 +25,7 @@ let rivalScorers = [];
 let possessionStats = { home: 0, away: 0 };
 let bgMusic = null;
 let goalSound = null;
+let booSound = null;
 let menuMusic = null;
 
 function playAmbientMusic() {
@@ -57,6 +58,21 @@ function stopGoalSound() {
     if (goalSound) {
         goalSound.pause();
         goalSound.currentTime = 0;
+    }
+}
+
+function playBooSound() {
+    if (!booSound) {
+        booSound = new Audio('musica/boo.mp3');
+        booSound.volume = 0.6;
+    }
+    booSound.play().catch(e => console.log("Error al reproducir sonido boo:", e));
+}
+
+function stopBooSound() {
+    if (booSound) {
+        booSound.pause();
+        booSound.currentTime = 0;
     }
 }
 
@@ -115,6 +131,7 @@ function stopGame(){
     if(goalTimeout) clearTimeout(goalTimeout);
     goalTimeout = null;
     stopAmbientMusic();
+    stopBooSound();
     if(gameState === 'idle') playMenuMusic();
     releaseWakeLock();
 }
@@ -998,7 +1015,11 @@ function scoreGoal(teamIndex) {
     gameState = 'goal';
     score[teamIndex]++;
     triggerHaptic('goal');
-    playGoalSound();
+    if (teamIndex === 1) {
+        playBooSound();
+    } else {
+        playGoalSound();
+    }
 
     players.forEach(p => { p.vx = 0; p.vy = 0; });
     goalScorer = currentPossessor && currentPossessor.team === teamIndex ? currentPossessor : players.filter(p => p.team === teamIndex && !p.isGoalie).reduce((best, p) => (!best || Math.hypot(p.x - ball.x, p.y - ball.y) < Math.hypot(best.x - ball.x, best.y - ball.y) ? p : best), null);
@@ -1022,6 +1043,7 @@ function scoreGoal(teamIndex) {
         if (gameState !== 'goal') return;
         msgEl.style.display = 'none';
         stopGoalSound();
+        stopBooSound();
         players.forEach(p => p.reset());
         ball.reset();
         positionForKickoff();
@@ -1553,7 +1575,8 @@ function resize() {
     
     // Calcular escala dinámica optimizada para PC y Tablet
     // Limitamos la escala en pantallas muy grandes para que no se vea "gigante"
-    pixelScale = Math.max(1.0, Math.min(2.2, height / 450));
+    // Ajustado para ver más campo (divisor de 450 a 600)
+    pixelScale = Math.max(0.8, Math.min(2.0, height / 600));
     
     // Actualizar objetos existentes si los hay
     if (ball) ball.reset();

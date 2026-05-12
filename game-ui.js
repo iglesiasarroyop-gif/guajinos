@@ -672,23 +672,64 @@ function showPreMatchScreen() {
 // ===== LIGA UI =====
 function updateMenuLeagueButtons() {
     const btnContinueRow = document.getElementById('league-continue-container');
-    const btnContinue = document.getElementById('btn-league-continue');
     const btnNew = document.getElementById('btn-league-new');
     
-    // Verificar si hay una liga válida (con equipo seleccionado)
-    const hasActiveLeague = leagueState && leagueState.userTeamId && leagueState.standings && leagueState.standings.length > 0;
+    const savedLeagues = typeof getAllSavedLeagues === 'function' ? getAllSavedLeagues() : [];
 
-    if (hasActiveLeague) {
-        if (btnContinueRow) btnContinueRow.style.display = 'flex';
-        if (btnContinue) btnContinue.textContent = `CONTINUAR LIGA`;
-        if (btnNew) btnNew.style.display = 'none';
+    if (savedLeagues.length > 0) {
+        if (btnContinueRow) {
+            btnContinueRow.style.display = 'flex';
+            btnContinueRow.style.flexDirection = 'column';
+            btnContinueRow.style.gap = '10px';
+            btnContinueRow.style.maxHeight = '200px';
+            btnContinueRow.style.overflowY = 'auto';
+            btnContinueRow.style.padding = '5px';
+            btnContinueRow.innerHTML = ''; // Limpiar lista
+
+            savedLeagues.forEach((league, idx) => {
+                const row = document.createElement('div');
+                row.style.position = 'relative';
+                row.style.width = '100%';
+                row.style.marginBottom = '5px';
+
+                const btn = document.createElement('button');
+                btn.className = 'premium-btn btn-gold';
+                btn.style.height = '60px';
+                btn.style.fontSize = '16px';
+                
+                const tData = teamsData.find(t => t.nombre === league.userTeamId);
+                const badge = tData && tData.escudo ? `<img src="${tData.escudo}" style="width:24px;height:24px;margin-right:10px;vertical-align:middle;border:1px solid #000;border-radius:4px;background:#fff">` : '⚽ ';
+                
+                btn.innerHTML = `<span class="btn-text">${badge}${league.userTeamId.toUpperCase()} - J${league.currentMatchday}</span>`;
+                btn.onclick = () => {
+                    loadLeagueState(idx);
+                    renderLeagueHub();
+                    showScreen('league-hub');
+                };
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'delete-league-btn';
+                delBtn.innerHTML = '×';
+                delBtn.style.top = '5px';
+                delBtn.style.right = '5px';
+                delBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (confirm(`¿Borrar la partida con el ${league.userTeamId}?`)) {
+                        deleteLeagueState(idx);
+                        updateMenuLeagueButtons();
+                    }
+                };
+
+                row.appendChild(btn);
+                row.appendChild(delBtn);
+                btnContinueRow.appendChild(row);
+            });
+        }
+        // Siempre permitimos crear una nueva liga si hay espacio o si se desea
+        if (btnNew) btnNew.style.display = 'block'; 
     } else {
         if (btnContinueRow) btnContinueRow.style.display = 'none';
         if (btnNew) btnNew.style.display = 'block';
-        // Si hay basura en leagueState pero no es válida, limpiamos
-        if (leagueState && !hasActiveLeague) {
-            deleteLeagueState();
-        }
     }
 }
 

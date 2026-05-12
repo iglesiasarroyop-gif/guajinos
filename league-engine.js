@@ -1,30 +1,37 @@
 // ===== MOTOR DE LIGA =====
 let leagueState = null;
+let currentSaveSlot = 0;
 
-function loadLeagueState() {
-    const saved = localStorage.getItem('superLiquidSoccer_league');
-    if (saved) {
-        try {
-            leagueState = JSON.parse(saved);
-        } catch(e) {
-            console.error("Error loading league state", e);
-            leagueState = null;
-        }
-    } else {
-        leagueState = null;
-    }
+function getAllSavedLeagues() {
+    const saved = localStorage.getItem('superLiquidSoccer_leagues_list');
+    return saved ? JSON.parse(saved) : [];
+}
+
+function loadLeagueState(slotIndex = 0) {
+    const leagues = getAllSavedLeagues();
+    leagueState = leagues[slotIndex] || null;
+    currentSaveSlot = slotIndex;
     return leagueState;
 }
 
 function saveLeagueState() {
-    if (leagueState) {
-        localStorage.setItem('superLiquidSoccer_league', JSON.stringify(leagueState));
-    }
+    if (!leagueState) return;
+    const leagues = getAllSavedLeagues();
+    leagues[currentSaveSlot] = leagueState;
+    localStorage.setItem('superLiquidSoccer_leagues_list', JSON.stringify(leagues));
+    
+    // Mantener compatibilidad con el sistema anterior por si acaso
+    localStorage.setItem('superLiquidSoccer_league', JSON.stringify(leagueState));
 }
 
-function deleteLeagueState() {
-    localStorage.removeItem('superLiquidSoccer_league');
-    leagueState = null;
+function deleteLeagueState(slotIndex = 0) {
+    const leagues = getAllSavedLeagues();
+    leagues.splice(slotIndex, 1);
+    localStorage.setItem('superLiquidSoccer_leagues_list', JSON.stringify(leagues));
+    if (currentSaveSlot === slotIndex) leagueState = null;
+    
+    // Si borramos todo, borrar también la clave antigua
+    if (leagues.length === 0) localStorage.removeItem('superLiquidSoccer_league');
 }
 
 function createLeague(leagueId, userTeamId, teams) {
@@ -42,9 +49,13 @@ function createLeague(leagueId, userTeamId, teams) {
         userTeamId: userTeamId,
         currentMatchday: 1,
         standings: standings,
-        schedule: schedule
+        schedule: schedule,
+        createdAt: new Date().toISOString()
     };
     
+    // Buscar un slot libre o añadir al final
+    const leagues = getAllSavedLeagues();
+    currentSaveSlot = leagues.length;
     saveLeagueState();
     return leagueState;
 }

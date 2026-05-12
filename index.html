@@ -413,5 +413,28 @@
         <p style="color:#fff; margin-top:40px; font-family:'Outfit', sans-serif; opacity:0.5; font-size:12px" id="pwa-status-text">Optimizado para dispositivos móviles</p>
         <div style="position:absolute; bottom:10px; right:10px; color:rgba(255,255,255,0.3); font-size:10px; font-family:sans-serif">v2.4.2</div>
     </div>
+    <!-- SCRIPTS DE CAPACITOR -->
+    <script>
+        // Bloquear orientación horizontal en dispositivos móviles
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (window.Capacitor && window.Capacitor.Plugins.ScreenOrientation) {
+                try {
+                    await window.Capacitor.Plugins.ScreenOrientation.lock({ orientation: 'landscape' });
+                } catch (e) {
+                    console.log("No se pudo bloquear la orientación:", e);
+                }
+            }
+        });
+
+        function closeSplash() {
+            const splash = document.getElementById('pwa-splash');
+            if (splash) {
+                splash.style.opacity = '0';
+                setTimeout(() => splash.style.display = 'none', 500);
+            }
+            if (typeof initAudio === 'function') initAudio();
+            if (typeof playMenuMusic === 'function') playMenuMusic();
+        }
+    </script>
 </body>
 </html>
