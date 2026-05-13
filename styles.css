@@ -12,7 +12,8 @@
 
 *{margin:0;padding:0;box-sizing:border-box}
 body,html{width:100%;height:100%;overflow:hidden;background:#111;font-family:'Outfit',sans-serif;color:#fff;touch-action:none;user-select:none}
-canvas{display:block;width:100%;height:100%}
+canvas{display:block;max-width:100%;max-height:100%}
+#gameCanvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;display:block}
 
 /* ===== PANTALLAS ===== */
 .screen{position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;display:none;flex-direction:column;align-items:center;overflow-y:auto}
@@ -294,59 +295,64 @@ canvas{display:block;width:100%;height:100%}
 .team-card .color-dot{width:16px;height:16px;border-radius:50%;border:2px solid #000}
 
 /* LINEUP SCREEN */
-#lineup-screen{background:#29b6f6;padding:0;gap:0;height:100vh;overflow:hidden;display:none;flex-direction:row;align-items:stretch;}
+/* LINEUP SCREEN */
+#lineup-screen{background:#29b6f6;padding:0;gap:0;height:100vh;overflow:hidden;display:none;flex-direction:column;align-items:stretch;}
 #lineup-screen.active{display:flex;}
+
+.lineup-header-bar {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    height: 70px;
+    flex-shrink: 0;
+    background: rgba(0,0,0,0.1);
+    z-index: 100;
+}
+
+.lineup-main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: calc(100vh - 70px);
+    overflow: hidden;
+}
+
+.team-info-panel{width:220px;background:var(--secondary-yellow);border:4px solid #000;margin:15px;padding:15px;display:flex;flex-direction:column;gap:10px;height:calc(100% - 30px);overflow-y:auto;flex-shrink:0;border-radius:20px;}
+.team-info-panel img{width:70px;height:70px;object-fit:contain;align-self:center;border-radius:10px;border:2px solid #000;background:#f5f5f5}
+
 .lineup-center-col {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 15px;
-    height: 100vh;
+    justify-content: center;
+    padding: 10px;
     min-width: 0;
 }
-.team-info-panel{width:240px;background:var(--secondary-yellow);border:4px solid #000;margin:15px;padding:20px;display:flex;flex-direction:column;gap:12px;box-shadow:none;height:calc(100vh - 30px);overflow-y:auto;flex-shrink:0;border-radius:20px;}
-.team-info-panel img{width:80px;height:80px;object-fit:contain;align-self:center;border-radius:12px;border:2px solid #000;background:#f5f5f5}
-.team-info-panel .info-label{font-size:11px;font-family:'Luckiest Guy', cursive;text-transform:uppercase;color:var(--primary-blue);margin-top:8px;margin-bottom:2px}
-.team-info-panel .info-value{
-    font-size: 14px;
-    font-family: 'Luckiest Guy', cursive;
-    color: #000;
-    background: var(--secondary-yellow);
-    padding: 4px 10px;
-    border: 2px solid #000;
-    border-radius: 6px;
-    display: inline-block;
-    box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
-    width: 100%;
-    text-align: center;
-    text-transform: uppercase;
-}
-#lineup-screen .field-container{width:100%;max-width:600px;aspect-ratio:600/800;position:relative;background:linear-gradient(180deg,#1e6b2e,#2d8a3e,#1e6b2e);border-radius:16px;border:3px solid rgba(255,255,255,.2);overflow:hidden;flex:1;min-height:0;}
-#lineup-screen .field-container canvas {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: contain;
-}
-.field-container::before{content:'';position:absolute;top:50%;left:5%;right:5%;height:2px;background:rgba(255,255,255,.3)}
-.field-container::after{content:'';position:absolute;top:50%;left:50%;width:80px;height:80px;border:2px solid rgba(255,255,255,.3);border-radius:50%;transform:translate(-50%,-50%)}
-.field-center-dot{position:absolute;top:50%;left:50%;width:6px;height:6px;background:rgba(255,255,255,.4);border-radius:50%;transform:translate(-50%,-50%);z-index:1}
-.field-area-top{position:absolute;top:0;left:50%;transform:translateX(-50%);width:40%;height:18%;border:2px solid rgba(255,255,255,.25);border-top:none}
-.field-area-bottom{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:40%;height:18%;border:2px solid rgba(255,255,255,.25);border-bottom:none}
-.field-goal-top{position:absolute;top:0;left:50%;transform:translateX(-50%);width:16%;height:5%;border:2px solid rgba(255,255,255,.35);border-top:none;background:rgba(255,255,255,.05)}
-.field-goal-bottom{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:16%;height:5%;border:2px solid rgba(255,255,255,.35);border-bottom:none;background:rgba(255,255,255,.05)}
 
-.position-slot{position:absolute;width:54px;height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;transform:translate(-50%,-50%);z-index:2}
+.field-container{width:100%;max-width:550px;aspect-ratio:600/800;position:relative;background:linear-gradient(180deg,#1e6b2e,#2d8a3e,#1e6b2e);border-radius:16px;border:4px solid #000;overflow:hidden;flex-shrink:1;}
+.field-container::before{content:'';position:absolute;top:50%;left:5%;right:5%;height:2px;background:rgba(255,255,255,0.3);z-index:1}
+.field-container::after{content:'';position:absolute;top:50%;left:50%;width:80px;height:80px;border:2px solid rgba(255,255,255,0.3);border-radius:50%;transform:translate(-50%,-50%);z-index:1}
+.field-center-dot{position:absolute;top:50%;left:50%;width:6px;height:6px;background:rgba(255,255,255,0.4);border-radius:50%;transform:translate(-50%,-50%);z-index:1}
+.field-area-top{position:absolute;top:0;left:50%;transform:translateX(-50%);width:40%;height:18%;border:2px solid rgba(255,255,255,0.25);border-top:none;z-index:1}
+.field-area-bottom{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:40%;height:18%;border:2px solid rgba(255,255,255,0.25);border-bottom:none;z-index:1}
+.field-goal-top{position:absolute;top:0;left:50%;transform:translateX(-50%);width:16%;height:5%;border:2px solid rgba(255,255,255,0.35);border-top:none;background:rgba(255,255,255,0.05);z-index:1}
+.field-goal-bottom{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:16%;height:5%;border:2px solid rgba(255,255,255,0.35);border-bottom:none;background:rgba(255,255,255,0.05);z-index:1}
+
+.position-slot{position:absolute;width:54px;height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;transform:translate(-50%,-50%);z-index:10}
 .pos-circle{width:54px;height:54px;border-radius:50%;background:rgba(0,0,0,.6);border:3px solid #fff;display:flex;align-items:center;justify-content:center;box-shadow: 0 0 10px rgba(0,0,0,0.5);transition:all .2s;position:relative}
 .position-slot:hover .pos-circle{border-color:var(--secondary-yellow);transform:scale(1.1)}
 .position-slot.filled .pos-circle{border-color:var(--secondary-yellow);background:var(--primary-blue)}
 .position-slot.active .pos-circle{border-color:#fff;box-shadow:0 0 20px #fff;transform:scale(1.15)}
 .position-slot .pos-label{font-size:16px;font-family:'Luckiest Guy', cursive;text-transform:uppercase;color:#fff;text-shadow: 1.5px 1.5px 0 #000; z-index: 2}
-.position-slot .pos-player{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-size:12px;font-family:'Luckiest Guy', cursive;color:#000;text-align:center;line-height:1;background:var(--secondary-yellow);padding:3px 10px;border-radius:6px;border:2px solid #000;white-space:nowrap;box-shadow: 0 2px 4px var(--primary-blue);z-index: 3}
+.position-slot .pos-player{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-size:12px;font-family:'Luckiest Guy', cursive;color:#000;text-align:center;line-height:1;background:var(--secondary-yellow);padding:3px 10px;border-radius:6px;border:2px solid #000;white-space:nowrap;box-shadow: 0 2px 4px var(--primary-blue);z-index: 12}
 
 .lineup-right-col {
-    width: 200px;
-    height: calc(100vh - 30px);
+    width: 220px;
+    height: calc(100% - 30px);
     background: transparent;
     border: none;
     margin: 15px;
@@ -355,9 +361,8 @@ canvas{display:block;width:100%;height:100%}
     flex-direction: column;
     gap: 12px;
     flex-shrink: 0;
-    border-radius: 0;
 }
-.players-panel{width:100%;background:var(--secondary-yellow);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;border:4px solid #000 !important;box-shadow:none;flex:1;min-height:0;}
+.players-panel{width:100%;background:var(--secondary-yellow);border-radius:20px;padding:15px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;border:4px solid #000 !important;flex:1;}
 .players-panel h3{font-size:18px;font-family:'Luckiest Guy', cursive;text-transform:uppercase;color:#000;margin-bottom:4px;text-align:center;}
 #btn-random {
     border-radius: 12px !important;
@@ -710,19 +715,6 @@ canvas{display:block;width:100%;height:100%}
 /* RESPONSIVE - Tablets y móviles portrait */
 @media(max-width:768px){
   .result-score { font-size: 60px !important; letter-spacing: 4px !important; }
-  #lineup-screen{flex-direction:column; padding:8px; gap:8px; overflow-y:auto; height:auto; min-height:100vh;}
-  .lineup-center-col { height: auto !important; padding: 10px 0 !important; }
- .team-info-panel{width:100%; height:auto; border:none; border-bottom:4px solid #000; flex-direction:row; flex-wrap:wrap; justify-content:center; gap:6px 16px; padding:10px; border-radius:0; margin:0; order: 1; flex-shrink: 0;}
- .lineup-right-col { width: 100%; height: auto; border: none; border-top: 4px solid #000; padding: 10px; margin:0; border-radius:0; order: 3; flex-shrink: 0; }
- .players-panel{width:100%;max-height:160px;flex-direction:row;flex-wrap:wrap;justify-content:flex-start;gap:4px;padding:8px;border-radius:10px}
- .player-item{padding:5px 8px;font-size:11px;flex:0 0 auto}
- .teams-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
- .team-card{padding:12px 8px;gap:6px}
- .team-card img{width:52px;height:52px}
- .team-card .team-name{font-size:11px}
- .screen-title{font-size:clamp(18px,4vw,28px)}
- .field-container{min-height:250px;border-radius:10px}
- .position-slot{width:48px;height:48px}
  .position-slot .pos-label{font-size:8px}
  .position-slot .pos-player{font-size:9px}
  .scoreboard{padding:4px 12px;gap:8px}
@@ -860,5 +852,27 @@ canvas{display:block;width:100%;height:100%}
     background: #fff;
     transform: scale(1.05);
 }
+
+/* LOAD GAME SCREEN */
+#load-game-screen {
+    background: #1a2236 !important;
+    justify-content: flex-start;
+    padding: 20px;
+}
+
+#load-games-list {
+    margin-top: 20px;
+    width: 100%;
+    max-width: 500px;
+}
+
+#load-game-screen .premium-btn {
+    margin-bottom: 10px;
+}
+
+#load-game-screen .screen-title {
+    margin-top: 40px;
+}
+
 # p w a - s p l a s h   {   t r a n s i t i o n :   o p a c i t y   0 . 5 s   e a s e ;   }   # a b a n d o n - m o d a l   {   p o i n t e r - e v e n t s :   a u t o   ! i m p o r t a n t ;   }  
  
