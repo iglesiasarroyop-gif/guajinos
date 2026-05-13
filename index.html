@@ -11,6 +11,17 @@
     <meta name="description" content="Juego de fútbol 2D top-down con equipos reales de la liga infantil asturiana">
     <link rel="stylesheet" href="styles.css?v=2.5">
     <script>
+        // ELIMINADOR DE CACHÉ PWA (KILL SWITCH)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                    console.log('SW desregistrado');
+                }
+                if (registrations.length > 0) window.location.reload(true);
+            });
+        }
+
         // Bloquear orientación horizontal lo antes posible
         (async () => {
             if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ScreenOrientation) {
