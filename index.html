@@ -5,34 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Guajinos</title>
     
-    <!-- PWA Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Guajinos">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#1a2236">
-    
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚽</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%231a2236%22/><text y=%22.75em%22 x=%225%22 font-size=%2280%22>⚽</text></svg>">
     
     <meta name="description" content="Juego de fútbol 2D top-down con equipos reales de la liga infantil asturiana">
-    <link rel="stylesheet" href="styles.css?v=3">
-    
-    <!-- El Manifest para PWA -->
-    <link rel="manifest" href="manifest.json?v=4">
+    <link rel="stylesheet" href="styles.css?v=5">
     <script>
-        // Force refresh if version mismatch
-        const CURRENT_VERSION = '2.4.1';
-        if (localStorage.getItem('app_version') !== CURRENT_VERSION) {
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(registrations => {
-                    for (let registration of registrations) registration.unregister();
-                });
-            }
-            localStorage.setItem('app_version', CURRENT_VERSION);
-            location.reload(true);
-        }
-
         // Bloquear orientación horizontal lo antes posible
         (async () => {
             if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ScreenOrientation) {
@@ -75,9 +53,7 @@
                         <span class="btn-text">NUEVA LIGA</span>
                     </button>
 
-                    <button class="premium-btn btn-install" id="id-btn-install-pwa" style="display:none;">
-                        <span class="btn-text">INSTALAR APP 📲</span>
-                    </button>
+
 
                     <button class="premium-btn btn-exit" id="btn-exit-app" style="background: #e53935; margin-top: 10px;">
                         <span class="btn-text">SALIR DEL JUEGO</span>
@@ -387,26 +363,11 @@
         </div>
     </div>
 
-    <!-- MODAL INSTALACIÓN PWA -->
-    <div id="pwa-install-modal" class="screen" style="background:rgba(0,0,0,0.8); z-index:10000; display:none; align-items:center; justify-content:center; padding:20px">
-        <div style="background:#fff; padding:30px; border-radius:25px; border:6px solid #000; max-width:400px; width:100%; color:#000; text-align:center">
-            <div style="font-size:50px; margin-bottom:15px">📱</div>
-            <h2 style="font-family:'Luckiest Guy', cursive; margin-bottom:10px">INSTALAR GUAJINOS</h2>
-            <div id="pwa-instructions-android" style="display:none">
-                <p>1. Pulsa en los tres puntos <b>(⋮)</b> del navegador.</p>
-                <p>2. Selecciona <b>"Instalar aplicación"</b> o "Añadir a pantalla de inicio".</p>
-            </div>
-            <div id="pwa-instructions-ios" style="display:none">
-                <p>1. Pulsa el botón de <b>Compartir</b> <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'><path d='M25 5v25M15 15l10-10 10 10M10 25v15h30V25' fill='none' stroke='black' stroke-width='3'/></svg>" style="width:20px; vertical-align:middle">.</p>
-                <p>2. Busca y selecciona <b>"Añadir a la pantalla de inicio"</b>.</p>
-            </div>
-            <button class="menu-btn" onclick="document.getElementById('pwa-install-modal').style.display='none'" style="margin-top:20px">ENTENDIDO</button>
-        </div>
-    </div>
+
 
     <!-- SPLASH INICIAL (PANTALLA COMPLETA) -->
-    <div id="pwa-splash" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#1a2236; z-index:20000; display:flex; flex-direction:column; align-items:center; justify-content:center; transition: opacity 0.5s ease">
-        <div class="menu-background-image" style="opacity: 0.3; filter: blur(5px);"></div>
+    <div id="pwa-splash" onclick="launchFullscreenGame()" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#1a2236; z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; transition: opacity 0.4s ease; cursor:pointer; opacity: 1 !important;">
+        <div class="menu-background-image" style="opacity: 0.2; filter: blur(8px); pointer-events: none;"></div>
         <div style="font-size:100px; margin-bottom:20px; filter: drop-shadow(0 0 20px rgba(255,215,59,0.5));">⚽</div>
         
         <h1 style="font-family:'Luckiest Guy', cursive; color:#ffca28; font-size:48px; margin-bottom:10px; text-align:center; text-shadow: 4px 4px 0 #000;">GUAJINOS SOCCER</h1>
@@ -421,63 +382,54 @@
     </div>
     <!-- SCRIPTS DE CAPACITOR -->
     <script>
+        function launchFullscreenGame() {
+            console.log("Iniciando Guajinos...");
+            
+            // 1. Ocultar splash inmediatamente
+            var splash = document.getElementById('pwa-splash');
+            if (splash) {
+                splash.style.opacity = '0';
+                splash.style.pointerEvents = 'none';
+                setTimeout(function() { splash.style.display = 'none'; }, 450);
+            }
+
+            // 2. Intentar Fullscreen y Landscape
+            try {
+                if (typeof requestFullscreenAndLandscape === 'function') {
+                    requestFullscreenAndLandscape();
+                } else {
+                    var docEl = document.documentElement;
+                    var requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+                    if (requestFS) requestFS.call(docEl);
+                }
+            } catch (e) { console.warn("Fullscreen error ignored:", e); }
+
+            // 3. Inicializar sistemas
+            if (typeof initAudio === 'function') initAudio();
+            if (typeof playMenuMusic === 'function') playMenuMusic();
+        }
+
         // Bloquear orientación horizontal y gestionar cierre de app
         window.addEventListener('load', async () => {
             const cap = window.Capacitor;
             if (cap && cap.Plugins) {
-                // Re-asegurar orientación por JS (doble capa de seguridad)
                 if (cap.Plugins.ScreenOrientation) {
                     try {
                         await cap.Plugins.ScreenOrientation.lock({ orientation: 'landscape' });
                     } catch (e) { console.warn("Orientation lock error:", e); }
                 }
-
-                // Configurar botón salir nativo (sin confirm que pueda bloquear)
                 const exitBtn = document.getElementById('btn-exit-app');
                 if (exitBtn) {
                     exitBtn.onclick = async () => {
-                        if (cap.Plugins.App) {
-                            await cap.Plugins.App.exitApp();
-                        } else {
-                            window.close();
-                        }
+                        if (cap.Plugins.App) await cap.Plugins.App.exitApp();
+                        else window.close();
                     };
                 }
             } else {
                 const exitBtn = document.getElementById('btn-exit-app');
-                if (exitBtn) {
-                    exitBtn.onclick = () => window.close();
-                }
+                if (exitBtn) exitBtn.onclick = () => window.close();
             }
         });
-
-        async function launchFullscreenGame() {
-            // 1. Intentar activar pantalla completa y orientación horizontal
-            if (typeof requestFullscreenAndLandscape === 'function') {
-                await requestFullscreenAndLandscape();
-            } else {
-                // Fallback si game-ui.js aún no cargó o la función no existe
-                try {
-                    if (!document.fullscreenElement) {
-                        await document.documentElement.requestFullscreen();
-                    }
-                    if (screen.orientation && screen.orientation.lock) {
-                        await screen.orientation.lock('landscape').catch(e => console.log("Lock failed:", e));
-                    }
-                } catch (e) { console.log("Fullscreen/Lock fallback error:", e); }
-            }
-
-            // 2. Cerrar splash
-            const splash = document.getElementById('pwa-splash');
-            if (splash) {
-                splash.style.opacity = '0';
-                setTimeout(() => splash.style.display = 'none', 500);
-            }
-
-            // 3. Inicializar audio
-            if (typeof initAudio === 'function') initAudio();
-            if (typeof playMenuMusic === 'function') playMenuMusic();
-        }
     </script>
 </body>
 </html>

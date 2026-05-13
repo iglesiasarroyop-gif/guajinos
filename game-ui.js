@@ -38,28 +38,11 @@ function showScreen(id) {
 function goToMenu() {
     matchInProgress = false;
     updateMenuLeagueButtons();
-    checkPWAStatus(); // Verificar si mostrar botón instalar
     showScreen('menu');
     if (typeof stopGame === 'function') stopGame();
 }
 
-function checkPWAStatus() {
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    const installBtn = document.getElementById('id-btn-install-pwa');
-    if (installBtn) {
-        // Solo mostrar si no está instalada Y es un móvil
-        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-        installBtn.style.display = (!isStandalone && isMobile) ? 'block' : 'none';
-        
-        installBtn.onclick = () => {
-            triggerHaptic('medium');
-            const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-            document.getElementById('pwa-install-modal').style.display = 'flex';
-            document.getElementById('pwa-instructions-ios').style.display = isiOS ? 'block' : 'none';
-            document.getElementById('pwa-instructions-android').style.display = isiOS ? 'none' : 'block';
-        };
-    }
-}
+
 
 function openSettings() {
     if (matchInProgress) {
@@ -1428,29 +1411,7 @@ function drawBabyFront(ctx, shirtColor, pantsColor, headColor, time = 0, forcedH
 
 // Iniciar estado PWA y volver al menú
 window.addEventListener('load', () => {
-    // Registro de Service Worker para PWA completa y auto-recarga
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').then(reg => {
-            reg.onupdatefound = () => {
-                const installingWorker = reg.installing;
-                installingWorker.onstatechange = () => {
-                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // Nueva versión lista, recargar
-                        window.location.reload();
-                    }
-                };
-            };
-        }).catch(err => console.log('SW error:', err));
-        
-        // Recargar si el SW cambia (v2, v3...)
-        let refreshing = false;
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (!refreshing) {
-                window.location.reload();
-                refreshing = true;
-            }
-        });
-    }
+
     console.log("⚽ Guajinos V2.4.5 - Sistema de lanzamiento optimizado");
     // El splash inicial se gestiona ahora directamente en index.html mediante launchFullscreenGame()
     // para asegurar que la interacción del usuario dispare correctamente las APIs de Fullscreen y Orientation.
@@ -1484,6 +1445,5 @@ window.addEventListener('load', () => {
     }
 
     // Inicializar estado final
-    checkPWAStatus();
     goToMenu();
 });
