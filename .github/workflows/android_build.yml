@@ -37,6 +37,7 @@ jobs:
           java-version: '17'
 
       - name: Sync Capacitor
+        if: "!contains(github.event.head_commit.message, '[skip apk]')"
         run: |
           npx cap add android
           # Parchear AndroidManifest.xml para forzar horizontal (landscape)
@@ -44,12 +45,14 @@ jobs:
           npx cap sync android
 
       - name: Build APK
+        if: "!contains(github.event.head_commit.message, '[skip apk]')"
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
       - name: Upload APK
+        if: "!contains(github.event.head_commit.message, '[skip apk]')"
         uses: actions/upload-artifact@v4
         with:
           name: Guajinos

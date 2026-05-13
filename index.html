@@ -404,27 +404,20 @@
         </div>
     </div>
 
-    <!-- SPLASH INICIAL (PWA/FULLSCREEN) -->
-    <div id="pwa-splash" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(26,34,54,0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index:20000; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition: opacity 0.5s ease" onclick="closeSplash()">
-        <div style="font-size:80px; margin-bottom:20px">⚽</div>
+    <!-- SPLASH INICIAL (PANTALLA COMPLETA) -->
+    <div id="pwa-splash" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#1a2236; z-index:20000; display:flex; flex-direction:column; align-items:center; justify-content:center; transition: opacity 0.5s ease">
+        <div class="menu-background-image" style="opacity: 0.3; filter: blur(5px);"></div>
+        <div style="font-size:100px; margin-bottom:20px; filter: drop-shadow(0 0 20px rgba(255,215,59,0.5));">⚽</div>
         
-        <!-- Estado A: Juego Listo (PC o Instalado) -->
-        <div id="splash-ready" style="display:none; flex-direction:column; align-items:center">
-            <h1 style="font-family:'Luckiest Guy', cursive; color:#ffca28; font-size:40px; margin-bottom:40px; text-align:center">GUAJINOS SOCCER</h1>
-            <div style="background:#4caf50; color:#fff; padding:20px 40px; border-radius:50px; font-family:'Luckiest Guy', cursive; font-size:24px; border:6px solid #000">TOCA PARA EMPEZAR</div>
-        </div>
+        <h1 style="font-family:'Luckiest Guy', cursive; color:#ffca28; font-size:48px; margin-bottom:10px; text-align:center; text-shadow: 4px 4px 0 #000;">GUAJINOS SOCCER</h1>
+        <p style="color:#fff; font-family:'Outfit', sans-serif; text-align:center; margin-bottom:40px; opacity:0.8; font-weight: 700; max-width: 300px;">Optimizado para jugar en horizontal y pantalla completa</p>
+        
+        <button class="premium-btn btn-blue" id="btn-launch-fullscreen" style="height:80px; font-size:24px; padding:0 60px; border: 4px solid #fff; box-shadow: 0 10px 0 #0b2b5e; transform: scale(1.1);" onclick="launchFullscreenGame()">
+            <span class="btn-text">JUGAR AHORA 🚀</span>
+        </button>
 
-        <!-- Estado B: Promoción de Instalación (Móvil no instalado) -->
-        <div id="splash-promote" style="display:none; flex-direction:column; align-items:center; padding:0 20px">
-            <h1 style="font-family:'Luckiest Guy', cursive; color:#ffca28; font-size:32px; margin-bottom:10px; text-align:center">¡JUEGA COMO UNA APP!</h1>
-            <p style="color:#fff; font-family:'Outfit', sans-serif; text-align:center; margin-bottom:30px; opacity:0.9">Para una experiencia a pantalla completa y sin interrupciones, instala Guajinos en tu móvil.</p>
-            
-            <button class="menu-btn btn-gold" id="btn-show-install-help" style="margin-bottom:20px">CÓMO INSTALAR 📲</button>
-            <button class="premium-btn btn-blue" id="btn-skip-install" style="height:60px; font-size:20px; padding:0 40px; margin-top:10px; border: 3px solid #fff" onclick="event.stopPropagation(); closeSplash();">CONTINUAR EN NAVEGADOR</button>
-        </div>
-
-        <p style="color:#fff; margin-top:40px; font-family:'Outfit', sans-serif; opacity:0.5; font-size:12px" id="pwa-status-text">Optimizado para dispositivos móviles</p>
-        <div style="position:absolute; bottom:10px; right:10px; color:rgba(255,255,255,0.3); font-size:10px; font-family:sans-serif">v2.4.2</div>
+        <p style="color:rgba(255,255,255,0.4); margin-top:60px; font-family:'Outfit', sans-serif; font-size:12px">Pulsa para activar pantalla completa y rotación</p>
+        <div style="position:absolute; bottom:20px; color:rgba(255,255,255,0.2); font-size:12px; font-family:sans-serif">v2.4.5</div>
     </div>
     <!-- SCRIPTS DE CAPACITOR -->
     <script>
@@ -458,12 +451,30 @@
             }
         });
 
-        function closeSplash() {
+        async function launchFullscreenGame() {
+            // 1. Intentar activar pantalla completa y orientación horizontal
+            if (typeof requestFullscreenAndLandscape === 'function') {
+                await requestFullscreenAndLandscape();
+            } else {
+                // Fallback si game-ui.js aún no cargó o la función no existe
+                try {
+                    if (!document.fullscreenElement) {
+                        await document.documentElement.requestFullscreen();
+                    }
+                    if (screen.orientation && screen.orientation.lock) {
+                        await screen.orientation.lock('landscape').catch(e => console.log("Lock failed:", e));
+                    }
+                } catch (e) { console.log("Fullscreen/Lock fallback error:", e); }
+            }
+
+            // 2. Cerrar splash
             const splash = document.getElementById('pwa-splash');
             if (splash) {
                 splash.style.opacity = '0';
                 setTimeout(() => splash.style.display = 'none', 500);
             }
+
+            // 3. Inicializar audio
             if (typeof initAudio === 'function') initAudio();
             if (typeof playMenuMusic === 'function') playMenuMusic();
         }

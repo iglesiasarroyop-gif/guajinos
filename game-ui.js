@@ -1031,15 +1031,28 @@ function showEndSeasonScreen() {
 // Fullscreen y Orientación
 async function requestFullscreenAndLandscape() {
     try {
-        if (!document.fullscreenElement) {
-            await document.documentElement.requestFullscreen();
+        const docEl = document.documentElement;
+        
+        // 1. Activar Pantalla Completa
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+            if (requestFS) await requestFS.call(docEl);
         }
-        // Intentar bloquear orientación (solo funciona en fullscreen en muchos móviles)
+
+        // 2. Bloquear Orientación (Solo funciona tras interacción de usuario y usualmente en fullscreen)
         if (screen.orientation && screen.orientation.lock) {
-            await screen.orientation.lock('landscape').catch(e => console.log("Orientation lock no soportado:", e));
+            await screen.orientation.lock('landscape').catch(err => {
+                console.warn("No se pudo bloquear la orientación:", err);
+            });
+        } else if (screen.lockOrientation) {
+            screen.lockOrientation('landscape');
+        } else if (screen.webkitLockOrientation) {
+            screen.webkitLockOrientation('landscape');
+        } else if (screen.mozLockOrientation) {
+            screen.mozLockOrientation('landscape');
         }
     } catch (err) {
-        console.log("Error al activar pantalla completa:", err);
+        console.error("Error en requestFullscreenAndLandscape:", err);
     }
 }
 
@@ -1438,60 +1451,9 @@ window.addEventListener('load', () => {
             }
         });
     }
-    console.log("⚽ Guajinos V2.2 - Sistema de detección cargado");
-
-    // Lógica de Splash y Promoción PWA
-    const splash = document.getElementById('pwa-splash');
-    const splashReady = document.getElementById('splash-ready');
-    const splashPromote = document.getElementById('splash-promote');
-    const btnSkipInstall = document.getElementById('btn-skip-install');
-    const btnShowInstallHelp = document.getElementById('btn-show-install-help');
-    
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 0 && !window.MSStream);
-
-    if (splash) {
-        // Determinar qué estado mostrar
-        if (isMobile && !isStandalone) {
-            splashPromote.style.display = 'flex';
-        } else {
-            splashReady.style.display = 'flex';
-        }
-
-        const closeSplash = () => {
-            splash.style.opacity = '0';
-            setTimeout(() => splash.style.display = 'none', 500);
-            initAudio();
-            if (isMobile && document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen().catch(() => {});
-            }
-        };
-
-        // Click en cualquier parte para cerrar si está listo o promocionando
-        splash.onclick = (e) => {
-            closeSplash();
-        };
-
-        // Click en "Continuar en el navegador"
-        if (btnSkipInstall) {
-            btnSkipInstall.onclick = (e) => {
-                e.stopPropagation();
-                closeSplash();
-            };
-        }
-
-        // Click en "Cómo instalar"
-        if (btnShowInstallHelp) {
-            btnShowInstallHelp.onclick = (e) => {
-                e.stopPropagation();
-                triggerHaptic('medium');
-                const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-                document.getElementById('pwa-install-modal').style.display = 'flex';
-                document.getElementById('pwa-instructions-ios').style.display = isiOS ? 'block' : 'none';
-                document.getElementById('pwa-instructions-android').style.display = isiOS ? 'none' : 'block';
-            };
-        }
-    }
+    console.log("⚽ Guajinos V2.4.5 - Sistema de lanzamiento optimizado");
+    // El splash inicial se gestiona ahora directamente en index.html mediante launchFullscreenGame()
+    // para asegurar que la interacción del usuario dispare correctamente las APIs de Fullscreen y Orientation.
 
     // Lógica del Modal de Abandono
     const btnEndMatch = document.getElementById('btn-end-match');
