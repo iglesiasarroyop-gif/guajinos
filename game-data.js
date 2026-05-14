@@ -143,6 +143,11 @@ const GOAL_SOUND_PATH = "musica/gol.mp3";
 const MENU_MUSIC_PATH = "musica/fondo.mp3";
 
 async function loadTeams() {
+    if (typeof EQUIPOS_INLINE === 'undefined') {
+        console.error("EQUIPOS_INLINE no está definido. ¿Se cargó equipos-inline.js?");
+        teamsData = [];
+        return [];
+    }
     teamsData = EQUIPOS_INLINE.equipos.filter(e => e.jugadores && e.jugadores.length >= 7 && e.estado !== 'Pendiente de renovación');
     return teamsData;
 }

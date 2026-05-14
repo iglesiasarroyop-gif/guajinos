@@ -20,6 +20,16 @@
                 } catch (e) { console.log("Error locking orientation in head:", e); }
             }
         })();
+
+        // Limpiar Service Workers antiguos que puedan estar bloqueando la carga en GitHub Pages
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                    console.log("Service Worker antiguo desregistrado.");
+                }
+            });
+        }
     </script>
 </head>
 <body>
@@ -263,7 +273,7 @@
 
     <script>
         function launchFullscreenGame() {
-            console.log("Iniciando v2.5...");
+            console.log("Iniciando v2.6...");
             var splash = document.getElementById('pwa-splash');
             if (splash) {
                 splash.style.opacity = '0';

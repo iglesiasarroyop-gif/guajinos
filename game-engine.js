@@ -28,6 +28,15 @@ let bgMusic = null;
 let goalSound = null;
 let booSound = null;
 let menuMusic = null;
+let isGameMuted = false;
+
+function setGameMute(muted) {
+    isGameMuted = muted;
+    if (bgMusic) bgMusic.muted = muted;
+    if (goalSound) goalSound.muted = muted;
+    if (booSound) booSound.muted = muted;
+    if (menuMusic) menuMusic.muted = muted;
+}
 
 function playAmbientMusic() {
     stopMenuMusic();
@@ -36,6 +45,7 @@ function playAmbientMusic() {
         bgMusic.loop = true;
         bgMusic.volume = 0.4;
     }
+    bgMusic.muted = isGameMuted;
     bgMusic.play().catch(e => console.log("Autoplay bloqueado o error de audio:", e));
 }
 
@@ -53,6 +63,7 @@ function playGoalSound() {
         goalSound.loop = true;
         goalSound.volume = 0.6;
     }
+    goalSound.muted = isGameMuted;
     goalSound.play().catch(e => console.log("Error al reproducir sonido de gol:", e));
 }
 
@@ -73,6 +84,7 @@ function playBooSound() {
     }
     // Forzar recarga si no está listo
     if (booSound.readyState < 2) booSound.load();
+    booSound.muted = isGameMuted;
     booSound.play().catch(e => {
         console.error("Error al reproducir sonido boo:", e);
         // Reintentar tras un toque si falla por política de autoplay
@@ -94,6 +106,7 @@ function playMenuMusic() {
         menuMusic.loop = true;
         menuMusic.volume = 0.3;
     }
+    menuMusic.muted = isGameMuted;
     menuMusic.play().catch(e => console.log("Música de menú esperando interacción:", e));
 }
 

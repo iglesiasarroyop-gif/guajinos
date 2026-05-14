@@ -42,6 +42,65 @@ function goToMenu() {
     if (typeof stopGame === 'function') stopGame();
 }
 
+function showLoadGameScreen() {
+    renderLoadGameList();
+    showScreen('load-game');
+}
+
+function renderLoadGameList() {
+    const list = document.getElementById('load-games-list');
+    if (!list) return;
+    
+    const savedLeagues = typeof getAllSavedLeagues === 'function' ? getAllSavedLeagues() : [];
+    list.innerHTML = '';
+
+    if (savedLeagues.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:20px; color:rgba(255,255,255,0.7);">No hay partidas guardadas</div>';
+        return;
+    }
+
+    savedLeagues.forEach((league, idx) => {
+        const row = document.createElement('div');
+        row.style.position = 'relative';
+        row.style.width = '100%';
+        row.style.marginBottom = '15px';
+
+        const btn = document.createElement('button');
+        btn.className = 'premium-btn btn-gold';
+        btn.style.height = '80px';
+        
+        const tData = teamsData.find(t => t.nombre === league.userTeamId);
+        const badge = tData && tData.escudo ? `<img src="${tData.escudo}" style="width:40px;height:40px;margin-right:15px;vertical-align:middle;border:2px solid #000;border-radius:8px;background:#fff">` : '⚽ ';
+        
+        btn.innerHTML = `<span class="btn-text" style="display:flex; align-items:center; justify-content:center; width:100%">${badge}<div style="text-align:left"><div>${league.userTeamId.toUpperCase()}</div><div style="font-size:14px; opacity:0.8; font-family:Outfit, sans-serif;">JORNADA ${league.currentMatchday}</div></div></span>`;
+        btn.onclick = () => {
+            loadLeagueState(idx);
+            renderLeagueHub();
+            showScreen('league-hub');
+        };
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'delete-league-btn';
+        delBtn.innerHTML = '×';
+        delBtn.style.width = '36px';
+        delBtn.style.height = '36px';
+        delBtn.style.top = '-5px';
+        delBtn.style.right = '-5px';
+        delBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (confirm(`¿Borrar la partida con el ${league.userTeamId}?`)) {
+                deleteLeagueState(idx);
+                renderLoadGameList();
+                updateMenuLeagueButtons();
+            }
+        };
+
+        row.appendChild(btn);
+        row.appendChild(delBtn);
+        list.appendChild(row);
+    });
+}
+
 
 
 function openSettings() {
@@ -236,21 +295,24 @@ function renderTeamSelect(screenId) {
 }
 
 function openLineup() {
+    showScreen('lineup');
     lineup = {};
     activeSlot = null;
     const tacticSelect = document.getElementById('tactic-select');
     if (tacticSelect) {
         tacticSelect.value = selectedTactic;
     }
-    showScreen('lineup');
     renderLineup();
 }
 
 function renderLineup() {
+    if (!selectedTeam) {
+        goToMenu();
+        return;
+    }
     const topInfoPanel = document.getElementById('lineup-top-info');
     const fieldEl = document.getElementById('lineup-field');
     const playersPanel = document.getElementById('players-list');
-    const fieldStatus = document.getElementById('field-status');
     const startBtn = document.getElementById('btn-start');
     const backBtnLineup = document.querySelector('#lineup-screen .back-btn');
 
@@ -280,25 +342,15 @@ function renderLineup() {
     // Info del equipo en panel superior
     if (topInfoPanel) {
         let displayName = selectedTeam.nombre;
-        // No acortar tanto si el ancho es mayor
         if (displayName.length > 40) {
             displayName = displayName.substring(0, 37) + '...';
         }
-
-        topInfoPanel.style.width = "600px"; // Ancho exacto del canvas base
-        topInfoPanel.style.maxWidth = "100%";
-        topInfoPanel.style.justifyContent = "center";
-        topInfoPanel.style.background = "#fff";
-        topInfoPanel.style.border = "4px solid #000";
-        topInfoPanel.style.borderRadius = "16px";
-        topInfoPanel.style.padding = "4px 8px";
-        topInfoPanel.style.boxShadow = "none";
         
         topInfoPanel.innerHTML = `
-            <div style="display:flex; align-items:center; gap:8px; width:100%">
-                <img src="${selectedTeam.escudo || ''}" style="height:36px; width:36px; object-fit:contain; border:2px solid #000; border-radius:6px; background:#f5f5f5; display:${selectedTeam.escudo?'block':'none'}">
-                <div style="background:var(--secondary-yellow); border:3px solid #000; border-radius:10px; padding:6px 15px; font-family:'Luckiest Guy', cursive; font-size:22px; color:#000; flex:1; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-transform:uppercase;">${displayName}</div>
-                <div style="background:#fff; border:3px solid #000; border-radius:10px; padding:6px 15px; font-family:'Luckiest Guy', cursive; font-size:18px; color:#000; min-width:100px; text-align:center;">${selectedTeam.categoria || ''}</div>
+            <div class="lineup-team-pill">
+                <img src="${selectedTeam.escudo || ''}" style="display:${selectedTeam.escudo?'block':'none'}">
+                <div class="lineup-team-name">${displayName}</div>
+                <div class="lineup-team-cat">${selectedTeam.categoria || ''}</div>
             </div>
         `;
     }
@@ -320,6 +372,8 @@ function renderLineup() {
         </div>
         <div id="field-status" style="position:absolute;bottom:10px;right:10px;z-index:10;font-size:12px;color:rgba(255,255,255,.6);background:rgba(0,0,0,.4);padding:4px 10px;border-radius:6px"></div>
     `;
+
+    const fieldStatus = document.getElementById('field-status');
 
     const ts = document.getElementById('tactic-select');
     if (ts) {
@@ -443,7 +497,7 @@ function renderLineup() {
     // Estado
     const filled = Object.keys(lineup).length;
     const total = currentFormation.length;
-    fieldStatus.textContent = `${filled}/${total}`;
+    if (fieldStatus) fieldStatus.textContent = `${filled}/${total}`;
 
     if (filled === total) {
         startBtn.classList.add('ready');
@@ -538,11 +592,79 @@ function autoFillRivalLineup() {
     return rivalLineup;
 }
 
+function quickSimMatch() {
+    if (!selectedTeam) return;
+    if (!rivalTeam && gameMode !== 'league_match') {
+        alert("Elegir un rival primero.");
+        return;
+    }
+    
+    // Si es liga, asegurar que tenemos rival
+    if (gameMode === 'league_match' && !rivalTeam) {
+        const currentMdMatches = leagueState.schedule.find(m => m.matchday === leagueState.currentMatchday);
+        const userMatch = currentMdMatches ? currentMdMatches.matches.find(m => m.home.trim() === selectedTeam.nombre.trim() || m.away.trim() === selectedTeam.nombre.trim()) : null;
+        if (userMatch) {
+            const rivalName = (userMatch.home.trim() === selectedTeam.nombre.trim() ? userMatch.away : userMatch.home);
+            rivalTeam = teamsData.find(t => t.nombre.trim() === rivalName.trim());
+        }
+    }
+
+    if (!rivalTeam) {
+        alert("No se pudo determinar el rival.");
+        return;
+    }
+
+    const sim = simulateMatch(selectedTeam.nombre, rivalTeam.nombre);
+    
+    // Configurar variables globales del motor de juego para mostrar en el resumen
+    score = [sim.homeScore, sim.awayScore];
+    localScorers = sim.scorers.filter(s => s.team === 'home').map(s => s.name);
+    rivalScorers = sim.scorers.filter(s => s.team === 'away').map(s => s.name);
+    
+    // Cambiar orden si el usuario es visitante en liga
+    if (gameMode === 'league_match') {
+        const currentMdMatches = leagueState.schedule.find(m => m.matchday === leagueState.currentMatchday);
+        const userMatch = currentMdMatches ? currentMdMatches.matches.find(m => m.home.trim() === selectedTeam.nombre.trim() || m.away.trim() === selectedTeam.nombre.trim()) : null;
+        if (userMatch && userMatch.away.trim() === selectedTeam.nombre.trim()) {
+            // Usuario es Away
+            score = [sim.awayScore, sim.homeScore];
+            localScorers = sim.scorers.filter(s => s.team === 'away').map(s => s.name);
+            rivalScorers = sim.scorers.filter(s => s.team === 'home').map(s => s.name);
+        }
+    }
+
+    // Usar la función endMatch del motor para procesar resultados de liga y mostrar pantalla
+    if (typeof endMatch === 'function') {
+        // Necesitamos asegurar que localTeamData y rivalTeamData estén puestos
+        localTeamData = selectedTeam;
+        rivalTeamData = rivalTeam;
+        currentGameMode = gameMode;
+        
+        // Simular posesión aleatoria para el resumen
+        possessionStats = { home: 45 + Math.random()*10, away: 45 + Math.random()*10 };
+        
+        endMatch();
+    } else {
+        alert("Error: No se pudo finalizar el partido simulado.");
+    }
+}
+
 function startMatch(simulate=false) {
     matchInProgress = true;
     showScreen('none');
-    document.getElementById('game-ui').classList.add('active');
-    document.getElementById('btn-tactic-game').style.display = 'flex';
+    
+    // Forzar visibilidad del canvas y UI para evitar pantalla negra
+    const canvas = document.getElementById('gameCanvas');
+    const gameUi = document.getElementById('game-ui');
+    if (canvas) canvas.style.display = 'block';
+    if (gameUi) {
+        gameUi.style.display = 'block';
+        gameUi.classList.add('active');
+    }
+    
+    const btnTactic = document.getElementById('btn-tactic-game');
+    if (btnTactic) btnTactic.style.display = 'flex';
+
     const rivalLineupData = (gameMode === 'match' || gameMode === 'league_match') ? autoFillRivalLineup() : null;
     initGame(selectedTeam, lineup, rivalTeam, rivalLineupData, gameMode, gameConfig.difficulty, selectedTactic, simulate);
 }
@@ -611,11 +733,11 @@ function showPreMatchScreen() {
             </div>
         </div>
 
-        <div style="display:flex; gap:20px; margin-top:5px">
-            <button id="btn-play-match" class="menu-btn btn-gold" style="padding:15px 40px; font-size:20px;">⚽ JUGAR PARTIDO</button>
-            <button id="btn-simulate-match" class="menu-btn" style="padding:15px 40px; font-size:20px; background:#ab47bc; color:#fff; display:none">🤖 SIMULAR</button>
+        <div style="display:flex; gap:20px; margin-top:15px">
+            <button id="btn-play-match" class="premium-btn btn-gold" style="height:80px; padding:0 40px; font-size:24px; border:4px solid #fff; box-shadow:0 8px 0 #c79204;"><span class="btn-text">COMENZAR ▶</span></button>
+            <button id="btn-simulate-match-pre" class="premium-btn" style="height:80px; padding:0 40px; font-size:24px; background:#ab47bc; border:4px solid #fff; box-shadow:0 8px 0 #7b1fa2;"><span class="btn-text">RESULTADO 🤖</span></button>
         </div>
-        <button id="btn-back-to-rival" style="background:transparent; border:none; color:rgba(255,255,255,0.8); padding:10px 25px; font-size:14px; cursor:pointer; text-decoration:underline; text-transform:uppercase; font-weight:900">← Volver</button>
+        <button id="btn-back-to-rival" style="background:transparent; border:none; color:rgba(255,255,255,0.8); padding:15px 30px; font-size:16px; cursor:pointer; text-decoration:underline; text-transform:uppercase; font-weight:900; font-family: Outfit, sans-serif;">← VOLVER A ALINEACIÓN</button>
         </div>
     `;
 
@@ -643,7 +765,13 @@ function showPreMatchScreen() {
     document.getElementById('btn-play-match').addEventListener('click', () => {
         cancelAnimationFrame(animReq);
         overlay.remove();
-        startMatch(true); // Modo SIMULADOR activado por defecto
+        startMatch(false);
+    });
+
+    document.getElementById('btn-simulate-match-pre').addEventListener('click', () => {
+        cancelAnimationFrame(animReq);
+        overlay.remove();
+        quickSimMatch();
     });
 
     document.getElementById('btn-back-to-rival').addEventListener('click', () => {
@@ -652,68 +780,48 @@ function showPreMatchScreen() {
     });
 }
 
+let isAudioOn = true;
+function toggleAudio() {
+    isAudioOn = !isAudioOn;
+    const btns = [document.getElementById('btn-music-toggle'), document.getElementById('btn-music-toggle-lineup')];
+    btns.forEach(b => {
+        if (b) b.textContent = isAudioOn ? '🔊' : '🔇';
+    });
+    
+    if (typeof setGameMute === 'function') {
+        setGameMute(!isAudioOn);
+    }
+    
+    if (typeof Howler !== 'undefined') {
+        Howler.mute(!isAudioOn);
+    }
+}
+
+// Inicialización de botones nuevos
+document.addEventListener('DOMContentLoaded', () => {
+    const btnLoad = document.getElementById('btn-load-game');
+    if (btnLoad) btnLoad.addEventListener('click', showLoadGameScreen);
+
+    const btnQuick = document.getElementById('btn-quick-result');
+    if (btnQuick) btnQuick.addEventListener('click', quickSimMatch);
+    
+    const backBtns = document.querySelectorAll('#load-game-screen .back-btn');
+    backBtns.forEach(b => b.addEventListener('click', goToMenu));
+
+    const btnMusic = document.getElementById('btn-music-toggle');
+    if (btnMusic) btnMusic.addEventListener('click', toggleAudio);
+
+    const btnMusicL = document.getElementById('btn-music-toggle-lineup');
+    if (btnMusicL) btnMusicL.addEventListener('click', toggleAudio);
+});
+
 // ===== LIGA UI =====
 function updateMenuLeagueButtons() {
+    // Esta función ya no necesita mostrar nada en el menú principal
+    // ya que hemos movido la lógica a la pantalla de CARGAR PARTIDA.
+    // Solo la mantenemos por si otras partes del código la llaman.
     const btnContinueRow = document.getElementById('league-continue-container');
-    const btnNew = document.getElementById('btn-league-new');
-    
-    const savedLeagues = typeof getAllSavedLeagues === 'function' ? getAllSavedLeagues() : [];
-
-    if (savedLeagues.length > 0) {
-        if (btnContinueRow) {
-            btnContinueRow.style.display = 'flex';
-            btnContinueRow.style.flexDirection = 'column';
-            btnContinueRow.style.gap = '10px';
-            btnContinueRow.style.maxHeight = '200px';
-            btnContinueRow.style.overflowY = 'auto';
-            btnContinueRow.style.padding = '5px';
-            btnContinueRow.innerHTML = ''; // Limpiar lista
-
-            savedLeagues.forEach((league, idx) => {
-                const row = document.createElement('div');
-                row.style.position = 'relative';
-                row.style.width = '100%';
-                row.style.marginBottom = '5px';
-
-                const btn = document.createElement('button');
-                btn.className = 'premium-btn btn-gold';
-                btn.style.height = '60px';
-                btn.style.fontSize = '16px';
-                
-                const tData = teamsData.find(t => t.nombre === league.userTeamId);
-                const badge = tData && tData.escudo ? `<img src="${tData.escudo}" style="width:24px;height:24px;margin-right:10px;vertical-align:middle;border:1px solid #000;border-radius:4px;background:#fff">` : '⚽ ';
-                
-                btn.innerHTML = `<span class="btn-text">${badge}${league.userTeamId.toUpperCase()} - J${league.currentMatchday}</span>`;
-                btn.onclick = () => {
-                    loadLeagueState(idx);
-                    renderLeagueHub();
-                    showScreen('league-hub');
-                };
-
-                const delBtn = document.createElement('button');
-                delBtn.className = 'delete-league-btn';
-                delBtn.innerHTML = '×';
-                delBtn.style.top = '5px';
-                delBtn.style.right = '5px';
-                delBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    if (confirm(`¿Borrar la partida con el ${league.userTeamId}?`)) {
-                        deleteLeagueState(idx);
-                        updateMenuLeagueButtons();
-                    }
-                };
-
-                row.appendChild(btn);
-                row.appendChild(delBtn);
-                btnContinueRow.appendChild(row);
-            });
-        }
-        // Siempre permitimos crear una nueva liga si hay espacio o si se desea
-        if (btnNew) btnNew.style.display = 'block'; 
-    } else {
-        if (btnContinueRow) btnContinueRow.style.display = 'none';
-        if (btnNew) btnNew.style.display = 'block';
-    }
+    if (btnContinueRow) btnContinueRow.style.display = 'none';
 }
 
 function renderLeagueHub() {
@@ -1077,21 +1185,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     // Usar 'pointerdown' para máxima respuesta en móviles y escritorio
-    document.getElementById('btn-result-menu').addEventListener('pointerdown', (e) => {
+    document.getElementById('btn-result-menu')?.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         matchInProgress = false;
         if (typeof stopGame === 'function') stopGame();
-        updateMenuLeagueButtons();
-
+        
+        // Auto-simular resto de jornada si es liga
         if (gameMode === 'league_match' && leagueState) {
+            const currentMdMatches = leagueState.schedule.find(m => m.matchday === leagueState.currentMatchday);
+            if (currentMdMatches) {
+                currentMdMatches.matches.forEach(m => {
+                    if (!m.played) {
+                        const sim = simulateMatch(m.home, m.away);
+                        m.homeScore = sim.homeScore;
+                        m.awayScore = sim.awayScore;
+                        m.scorers = sim.scorers;
+                        m.played = true;
+                    }
+                });
+                if (typeof updateStandings === 'function') updateStandings();
+            }
             renderLeagueHub();
             showScreen('league-hub');
         } else {
             goToMenu();
         }
     });
-    document.getElementById('btn-fullscreen-menu').addEventListener('click', toggleFullscreen);
-    document.getElementById('btn-fullscreen-game').addEventListener('click', toggleFullscreen);
+    document.getElementById('btn-fullscreen-menu')?.addEventListener('click', toggleFullscreen);
+    document.getElementById('btn-fullscreen-game')?.addEventListener('click', toggleFullscreen);
 
     // Configuración — desde lineup y desde partido
     document.getElementById('btn-settings-lineup')?.addEventListener('click', openSettings);
@@ -1144,34 +1265,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    document.getElementById('btn-tactic-game').addEventListener('click', () => {
+    document.getElementById('btn-tactic-game')?.addEventListener('click', () => {
         if (typeof pauseGame === 'function') pauseGame();
         showScreen('lineup');
         renderLineup();
     });
 
     // Eventos Liga
-    document.getElementById('btn-league-new').addEventListener('click', () => {
+    document.getElementById('btn-league-new')?.addEventListener('click', () => {
         showScreen('league-create');
     });
-    document.getElementById('btn-league-delete').addEventListener('click', () => {
+    document.getElementById('btn-league-delete')?.addEventListener('click', () => {
         if (confirm("¿Estás seguro de borrar la liga actual? Se perderá todo el progreso.")) {
             deleteLeagueState();
             updateMenuLeagueButtons();
         }
     });
-    document.getElementById('btn-league-continue').addEventListener('click', () => {
+    document.getElementById('btn-league-continue')?.addEventListener('click', () => {
         requestFullscreenAndLandscape();
         renderLeagueHub();
         showScreen('league-hub');
     });
-    document.getElementById('league-create-screen').querySelector('.back-btn').addEventListener('click', () => {
+    document.getElementById('league-create-screen')?.querySelector('.back-btn')?.addEventListener('click', () => {
         showScreen('menu');
     });
-    document.getElementById('btn-league-select-team').addEventListener('click', () => {
+    document.getElementById('btn-league-select-team')?.addEventListener('click', () => {
         startTeamSelect('league');
     });
-    document.getElementById('btn-league-hub-back').addEventListener('click', () => {
+    document.getElementById('btn-league-hub-back')?.addEventListener('click', () => {
         updateMenuLeagueButtons();
         showScreen('menu');
     });
