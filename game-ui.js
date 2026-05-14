@@ -896,17 +896,17 @@ function renderLeagueHub() {
         formHtml += '</div>';
 
         tr.innerHTML = `
-            <td style="padding:8px 4px; font-weight:900; color:#757575">${idx + 1}</td>
-            <td style="padding:8px 4px; text-align:center;">${trendHtml}</td>
-            <td style="padding:8px 4px; display:flex; align-items:center; font-weight:900; color:#000; text-transform:uppercase; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${badgeSrc}${s.teamId.toUpperCase()}</td>
-            <td style="padding:8px 4px; text-align:center;">${formHtml}</td>
-            <td style="padding:8px 4px; text-align:center; font-weight:900; color:#f57c00">${s.pts}</td>
-            <td style="padding:8px 4px; text-align:center; font-weight:900; color:#000">${s.pld}</td>
-            <td style="padding:8px 4px; text-align:center; font-weight:900; color:#000">${s.w}</td>
-            <td style="padding:8px 4px; text-align:center; font-weight:900; color:#000">${s.d}</td>
-            <td style="padding:8px 4px; text-align:center; font-weight:900; color:#000">${s.l}</td>
-            <td style="padding:8px 4px; text-align:center; font-weight:900; color:#000">${s.gf}</td>
-            <td style="padding:8px 4px; text-align:center; font-weight:900; color:#000">${s.ga}</td>
+            <td style="padding:8px 2px; font-weight:900; color:#757575; text-align:center; width:25px">${idx + 1}</td>
+            <td style="padding:8px 2px; text-align:center; width:20px">${trendHtml}</td>
+            <td style="padding:8px 4px; display:flex; align-items:center; font-weight:900; color:#000; text-transform:uppercase; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${badgeSrc}${s.teamId.toUpperCase()}</td>
+            <td style="padding:8px 2px; text-align:center; min-width:85px;">${formHtml}</td>
+            <td style="padding:8px 2px; text-align:center; font-weight:900; color:#f57c00; width:30px">${s.pts}</td>
+            <td style="padding:8px 2px; text-align:center; font-weight:900; color:#000; width:25px">${s.pld}</td>
+            <td style="padding:8px 2px; text-align:center; font-weight:900; color:#000; width:25px">${s.w}</td>
+            <td style="padding:8px 2px; text-align:center; font-weight:900; color:#000; width:25px">${s.d}</td>
+            <td style="padding:8px 2px; text-align:center; font-weight:900; color:#000; width:25px">${s.l}</td>
+            <td style="padding:8px 2px; text-align:center; font-weight:900; color:#000; width:25px">${s.gf}</td>
+            <td style="padding:8px 2px; text-align:center; font-weight:900; color:#000; width:25px">${s.ga}</td>
         `;
         tbody.appendChild(tr);
     });
