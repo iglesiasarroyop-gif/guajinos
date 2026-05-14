@@ -533,7 +533,7 @@ canvas{display:block;max-width:100%;max-height:100%}
     }
     .game-btn-group {
         top: 2px !important;
-        right: 4px !important;
+        right: 12px !important;
     }
 }
 .scorers-display{position:absolute;bottom:40px;left:0;right:0;display:flex;justify-content:space-between;padding:0 20px;pointer-events:none}
@@ -578,7 +578,7 @@ canvas{display:block;max-width:100%;max-height:100%}
     pointer-events: none;
 }
 .controls-hint{display:none}
-.game-btn-group{position:absolute;top:4px;right:10px;display:flex;flex-direction:row;gap:8px;z-index:100;opacity:0.7;pointer-events:auto;}
+.game-btn-group{position:absolute;top:4px;right:20px;display:flex;flex-direction:row;gap:8px;z-index:100;opacity:0.7;pointer-events:auto;}
 .game-btn-group .btn-fullscreen,.game-btn-group .btn-tactic-game,.game-btn-group .btn-end-match,.game-btn-group .btn-game-sound{position:relative;width:36px;height:36px;border-radius:12px;background:#2196f3;border:4px solid #000;color:#fff;font-size:16px;cursor:pointer;transition:all .1s;display:flex;align-items:center;justify-content:center;box-shadow:none;text-shadow:2px 2px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000}
 .game-btn-group .btn-end-match{background:#e53935}
 .game-btn-group .btn-fullscreen:hover,.game-btn-group .btn-tactic-game:hover,.game-btn-group .btn-game-sound:hover{background:#42a5f5;transform:translateY(-1px)}
