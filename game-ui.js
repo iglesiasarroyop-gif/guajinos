@@ -737,9 +737,9 @@ function showPreMatchScreen() {
             </div>
         </div>
 
-        <div style="display:flex; gap:15px; margin-top:15px; flex-wrap:wrap; justify-content:center;">
-            <button id="btn-play-match" class="premium-btn btn-gold" style="height:80px; min-width:220px; padding:0 30px; font-size:22px; border:4px solid #fff; box-shadow:0 8px 0 #c79204;"><span class="btn-text">COMENZAR ▶</span></button>
-            <button id="btn-simulate-match-pre" class="premium-btn" style="height:80px; min-width:220px; padding:0 30px; font-size:22px; background:#ab47bc; border:4px solid #fff; box-shadow:0 8px 0 #7b1fa2;"><span class="btn-text">RESULTADO 🤖</span></button>
+        <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:nowrap; justify-content:center;">
+            <button id="btn-play-match" class="premium-btn btn-gold" style="height:55px; min-width:130px; padding:0 15px; font-size:16px; border:3px solid #fff; box-shadow:0 5px 0 #c79204;"><span class="btn-text">COMENZAR ▶</span></button>
+            <button id="btn-simulate-match-pre" class="premium-btn" style="height:55px; min-width:130px; padding:0 15px; font-size:16px; background:#ab47bc; border:3px solid #fff; box-shadow:0 5px 0 #7b1fa2;"><span class="btn-text">RESULTADO 🤖</span></button>
         </div>
         <button id="btn-back-to-rival" style="background:transparent; border:none; color:rgba(255,255,255,0.8); padding:15px 30px; font-size:16px; cursor:pointer; text-decoration:underline; text-transform:uppercase; font-weight:900; font-family: Outfit, sans-serif;">← VOLVER A ALINEACIÓN</button>
         </div>
@@ -785,9 +785,37 @@ function showPreMatchScreen() {
 }
 
 let isAudioOn = true;
+
+// --- Wake Lock: re-adquirir al volver de background (iOS/Android) ---
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && (gameState === 'playing' || gameState === 'entrance' || gameState === 'countdown')) {
+        if (typeof requestWakeLock === 'function') requestWakeLock();
+    }
+});
+
+// --- Fallback iOS: audio silencioso en loop para prevenir bloqueo ---
+let iosSilentAudio = null;
+function startSilentAudio() {
+    if (iosSilentAudio) return;
+    const audioCtxIos = new (window.AudioContext || window.webkitAudioContext)();
+    const buf = audioCtxIos.createBuffer(1, 1, 22050);
+    const src = audioCtxIos.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    src.connect(audioCtxIos.destination);
+    src.start(0);
+    iosSilentAudio = src;
+}
+// Iniciar en la primera interacción del usuario
+window.addEventListener('touchstart', startSilentAudio, { once: true });
+window.addEventListener('click', startSilentAudio, { once: true });
 function toggleAudio() {
     isAudioOn = !isAudioOn;
-    const btns = [document.getElementById('btn-music-toggle'), document.getElementById('btn-music-toggle-lineup')];
+    const btns = [
+        document.getElementById('btn-music-toggle'), 
+        document.getElementById('btn-music-toggle-lineup'),
+        document.getElementById('btn-game-sound')
+    ];
     btns.forEach(b => {
         if (b) b.textContent = isAudioOn ? '🔊' : '🔇';
     });
@@ -817,6 +845,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btnMusicL = document.getElementById('btn-music-toggle-lineup');
     if (btnMusicL) btnMusicL.addEventListener('click', toggleAudio);
+
+    const btnGameSound = document.getElementById('btn-game-sound');
+    if (btnGameSound) btnGameSound.addEventListener('click', toggleAudio);
 });
 
 // ===== LIGA UI =====

@@ -195,8 +195,11 @@
     <!-- ALINEACIÓN -->
     <div id="lineup-screen" class="screen">
         <div class="lineup-header-bar">
-            <div id="lineup-top-info"></div>
-            <div style="display:flex; align-items:center; gap:8px;">
+            <div class="lineup-header-left">
+                <!-- Spacer izquierdo simétrico -->
+            </div>
+            <div id="lineup-top-info" class="lineup-header-center"></div>
+            <div class="lineup-header-right">
                 <button class="icon-btn" id="btn-music-toggle-lineup" style="width:40px; height:40px; font-size:20px;">🔊</button>
             </div>
         </div>
@@ -295,6 +298,7 @@
         </div>
         <div class="match-time-bottom"><span id="match-time">00'</span></div>
         <div class="game-btn-group">
+            <button class="btn-game-sound" id="btn-game-sound" title="Sonido">🔊</button>
             <button class="btn-tactic-game" id="btn-tactic-game" style="display:none" title="Táctica">⚽</button>
             <button class="btn-end-match" id="btn-end-match">✕</button>
         </div>
