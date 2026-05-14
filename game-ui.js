@@ -345,10 +345,12 @@ function renderLineup() {
         if (displayName.length > 40) {
             displayName = displayName.substring(0, 37) + '...';
         }
-        
+        const shieldHtml = selectedTeam.escudo
+            ? `<img src="${selectedTeam.escudo}" alt="${selectedTeam.nombre}">`
+            : '';
         topInfoPanel.innerHTML = `
             <div class="lineup-team-pill">
-                <img src="${selectedTeam.escudo || ''}" style="display:${selectedTeam.escudo?'block':'none'}">
+                ${shieldHtml}
                 <div class="lineup-team-name">${displayName}</div>
                 <div class="lineup-team-cat">${selectedTeam.categoria || ''}</div>
             </div>
