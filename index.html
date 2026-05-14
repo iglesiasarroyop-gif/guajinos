@@ -350,6 +350,15 @@
         <div style="position:absolute; bottom:20px; color:rgba(255,255,255,0.5); font-size:14px; font-family:sans-serif; background:rgba(0,0,0,0.3); padding:4px 10px; border-radius:10px;">VERSIÓN 2.6</div>
     </div>
 
+    <!-- PANTALLA DE RESUMEN (FALLBACK BLOQUEO) -->
+    <div id="resume-screen" class="screen" style="background:rgba(26,34,54,0.95); z-index:999999; display:none; flex-direction:column; align-items:center; justify-content:center;">
+        <div style="font-size:80px; margin-bottom:20px;">🎮</div>
+        <h2 style="font-family:'Luckiest Guy', cursive; color:#ffca28; font-size:36px; margin-bottom:30px;">PARTIDA EN PAUSA</h2>
+        <button class="premium-btn btn-gold" id="btn-resume-game" style="height:80px; font-size:24px; padding:0 60px; border: 4px solid #fff; box-shadow: 0 10px 0 #c79204;">
+            <span class="btn-text">SEGUIR JUGANDO 🚀</span>
+        </button>
+    </div>
+
     <!-- SCRIPTS -->
     <script src="equipos-inline.js?v=2.6"></script>
     <script src="game-data.js?v=2.6"></script>
@@ -379,6 +388,42 @@
             if (typeof playMenuMusic === 'function') playMenuMusic();
             if (typeof goToMenu === 'function') goToMenu();
         }
+
+        // Sistema de reanudación al volver de bloqueo
+        function resumeGameSession() {
+            var resumeSc = document.getElementById('resume-screen');
+            if (resumeSc) resumeSc.style.display = 'none';
+            
+            // Restaurar pantalla completa y orientación
+            try {
+                if (typeof requestFullscreenAndLandscape === 'function') {
+                    requestFullscreenAndLandscape();
+                } else {
+                    var docEl = document.documentElement;
+                    var req = docEl.requestFullscreen || docEl.webkitRequestFullscreen;
+                    if (req) req.call(docEl).catch(function(e){});
+                }
+            } catch (e) {}
+            
+            // Si el audio se pausó, reanudar
+            if (typeof initAudio === 'function') initAudio();
+        }
+
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                // Solo mostrar si no estamos en el splash inicial
+                var splash = document.getElementById('pwa-splash');
+                if (!splash || splash.style.display === 'none') {
+                    var resumeSc = document.getElementById('resume-screen');
+                    if (resumeSc) {
+                        resumeSc.style.display = 'flex';
+                        resumeSc.classList.add('active');
+                    }
+                }
+            }
+        });
+
+        document.getElementById('btn-resume-game')?.addEventListener('click', resumeGameSession);
 
         // Botón salir del juego (menú inicial)
         document.addEventListener('DOMContentLoaded', function() {

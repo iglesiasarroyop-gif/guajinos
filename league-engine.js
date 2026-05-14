@@ -139,19 +139,22 @@ function updateStandings() {
     // Recalcular forma (últimos 5 partidos)
     leagueState.standings.forEach(s => {
         const teamResults = [];
-        // Recorrer todas las jornadas jugadas hasta ahora para este equipo
+        // Recorrer todas las jornadas hasta la actual
         leagueState.schedule.forEach(day => {
-            day.matches.forEach(m => {
-                if (m.played && (m.home === s.teamId || m.away === s.teamId)) {
-                    const isHome = m.home === s.teamId;
-                    const teamScore = isHome ? m.homeScore : m.awayScore;
-                    const rivalScore = isHome ? m.awayScore : m.homeScore;
-                    
+            if (day.matchday < leagueState.currentMatchday) {
+                const match = day.matches.find(m => m.home === s.teamId || m.away === s.teamId);
+                if (match && match.played) {
+                    const isHome = match.home === s.teamId;
+                    const teamScore = isHome ? match.homeScore : match.awayScore;
+                    const rivalScore = isHome ? match.awayScore : match.homeScore;
                     if (teamScore > rivalScore) teamResults.push('V');
                     else if (teamScore < rivalScore) teamResults.push('D');
                     else teamResults.push('E');
+                } else if (!match) {
+                    // El equipo descansó esta jornada
+                    teamResults.push('R');
                 }
-            });
+            }
         });
         // Quedarse con los últimos 5
         s.form = teamResults.slice(-5);
