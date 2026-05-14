@@ -690,7 +690,11 @@ function resumeMatch() {
         gameState = 'playing';
     }
     showScreen('none');
-    document.getElementById('game-ui').classList.add('active');
+    const gameUI = document.getElementById('game-ui');
+    if (gameUI) {
+        gameUI.style.display = 'block';
+        gameUI.classList.add('active');
+    }
     document.getElementById('btn-tactic-game').style.display = 'flex';
 }
 
