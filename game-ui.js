@@ -26,8 +26,13 @@ const PRESET_COLORS = [
 
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    
+    // Ocultar UI de juego explícitamente
     const gameUI = document.getElementById('game-ui');
-    if (gameUI) gameUI.classList.remove('active');
+    if (gameUI) {
+        gameUI.classList.remove('active');
+        gameUI.style.display = 'none';
+    }
     
     const el = document.getElementById(id + '-screen');
     if (el) {
@@ -877,6 +882,10 @@ function renderLeagueHub() {
         const tData = teamsData.find(t => t.nombre === s.teamId);
         const badgeSrc = tData && tData.escudo ? `<img src="${tData.escudo}" style="width:20px;height:20px;object-fit:contain;vertical-align:middle;margin-right:8px">` : '';
         
+        let trendHtml = '<span class="trend-equal">●</span>';
+        if (s.trend > 0) trendHtml = '<span class="trend-up">▲</span>';
+        else if (s.trend < 0) trendHtml = '<span class="trend-down">▼</span>';
+
         let formHtml = '<div style="display:flex; justify-content:center;">';
         if (s.form) {
             s.form.forEach(res => {
@@ -888,7 +897,8 @@ function renderLeagueHub() {
 
         tr.innerHTML = `
             <td style="padding:8px 4px; font-weight:900; color:#757575">${idx + 1}</td>
-            <td style="padding:8px 4px; display:flex; align-items:center; font-weight:900; color:#000; text-transform:uppercase">${badgeSrc}${s.teamId.toUpperCase()}</td>
+            <td style="padding:8px 4px; text-align:center;">${trendHtml}</td>
+            <td style="padding:8px 4px; display:flex; align-items:center; font-weight:900; color:#000; text-transform:uppercase; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${badgeSrc}${s.teamId.toUpperCase()}</td>
             <td style="padding:8px 4px; text-align:center;">${formHtml}</td>
             <td style="padding:8px 4px; text-align:center; font-weight:900; color:#f57c00">${s.pts}</td>
             <td style="padding:8px 4px; text-align:center; font-weight:900; color:#000">${s.pld}</td>

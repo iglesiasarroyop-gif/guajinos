@@ -160,11 +160,21 @@ function updateStandings() {
         s.form = teamResults.slice(-5);
     });
 
+    // Guardar copia para tendencia
+    const oldOrder = [...leagueState.standings].map(s => s.teamId);
+
     // Sort standings
     leagueState.standings.sort((a, b) => {
         if (b.pts !== a.pts) return b.pts - a.pts;
         if (b.gd !== a.gd) return b.gd - a.gd;
         return b.gf - a.gf;
+    });
+
+    // Calcular tendencia
+    leagueState.standings.forEach((s, newIdx) => {
+        const oldIdx = oldOrder.indexOf(s.teamId);
+        if (oldIdx === -1) s.trend = 0;
+        else s.trend = oldIdx - newIdx; // Subir posición significa bajar el índice
     });
     
     saveLeagueState();
