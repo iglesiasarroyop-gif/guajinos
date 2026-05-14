@@ -1083,6 +1083,10 @@ function scoreGoal(teamIndex) {
     if (goalScorer) {
         if (teamIndex === 0) {
             localScorers.push(goalScorer.name);
+            // Efectos de celebración local
+            for(let i=0; i<5; i++) {
+                setTimeout(() => spawnCelebration(Math.random()*width, Math.random()*height*0.4), i*300);
+            }
         } else {
             rivalScorers.push(goalScorer.name);
         }
@@ -1103,11 +1107,19 @@ function scoreGoal(teamIndex) {
         players.forEach(p => p.reset());
         ball.reset();
         positionForKickoff();
+        if (matchTime > 0) {
+            // Reanudación inmediata tras gol (sin cuenta atrás visual)
+            playWhistle();
+            gameState = 'playing';
+            goalTimeout = null;
+            return;
+        }
+
         gameState = 'countdown';
         countdownValue = 3;
         playWhistle();
         const cd = document.getElementById('countdown-display');
-        if (cd && matchTime === 0) {
+        if (cd) {
             cd.style.display = 'block';
             cd.textContent = '3';
         }
@@ -1117,11 +1129,13 @@ function scoreGoal(teamIndex) {
                 return;
             }
             countdownValue--;
-            if (countdownValue <= 0) {
+            if (countdownValue > 0) {
+                if (cd) cd.textContent = countdownValue;
+            } else {
                 clearInterval(countdownInterval);
                 countdownInterval = null;
-                cd.style.display = 'none';
-                playWhistle(); // Pitido tras gol
+                if (cd) cd.style.display = 'none';
+                playWhistle(); 
                 gameState = 'playing';
             }
         }, 1000);
@@ -1325,6 +1339,9 @@ function updateGameState(){
                     if (Math.random() < 0.01 && !p.speechBubble) {
                         p.speechBubble = "oe oe oe!";
                         setTimeout(() => p.speechBubble = null, 3000);
+                    }
+                    if (Math.random() < 0.05) {
+                        spawnCelebration(p.x, p.y - 20, 5);
                     }
                 } else if (p.team !== winner && !p.isGoalie) {
                     // Los perdedores se quedan quietos llorando
@@ -1628,9 +1645,54 @@ function update(){
     }
 }
 
+// ===== SISTEMA DE CELEBRACIÓN (PARTÍCULAS) =====
+let particles = [];
+class Particle {
+    constructor(x, y, color) {
+        this.x = x; this.y = y;
+        const ang = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 8;
+        this.vx = Math.cos(ang) * speed;
+        this.vy = Math.sin(ang) * speed - 2;
+        this.color = color;
+        this.life = 1;
+        this.decay = 0.01 + Math.random() * 0.02;
+        this.size = 2 + Math.random() * 4;
+    }
+    update() {
+        this.x += this.vx; this.y += this.vy;
+        this.vy += 0.15; // Gravedad
+        this.life -= this.decay;
+    }
+    draw(ctx) {
+        ctx.globalAlpha = this.life;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+}
+
+function spawnCelebration(x, y, count = 40) {
+    const colors = ['#ffca28', '#e53935', '#4caf50', '#2196f3', '#ffffff', '#ff4081'];
+    for (let i = 0; i < count; i++) {
+        particles.push(new Particle(x, y, colors[Math.floor(Math.random() * colors.length)]));
+    }
+}
+
 function draw(){
     ctx.clearRect(0,0,width,height);if(gameState==='idle')return;
-    drawField();ball.draw(ctx);[...players].sort((a,b)=>a.y-b.y).forEach(p=>p.draw(ctx));drawTouchUI();
+    drawField();ball.draw(ctx);[...players].sort((a,b)=>a.y-b.y).forEach(p=>p.draw(ctx));
+    
+    // Dibujar partículas
+    for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].update();
+        particles[i].draw(ctx);
+        if (particles[i].life <= 0) particles.splice(i, 1);
+    }
+    
+    drawTouchUI();
     if(gameState==='countdown'){
         const cd=document.getElementById('countdown-display');
         cd.style.display='block';cd.textContent=countdownValue>0?countdownValue:'¡YA!';

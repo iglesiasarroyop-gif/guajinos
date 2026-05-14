@@ -1363,6 +1363,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderLeagueSchedule(viewingMatchday);
     });
 
+    document.getElementById('btn-exit-lineup')?.addEventListener('click', () => {
+        if (confirm('¿Abandonar alineación y volver al menú?')) {
+            showScreen('menu');
+        }
+    });
+
     loadLeagueState();
     updateMenuLeagueButtons();
     initMenuBackground();
