@@ -737,9 +737,9 @@ function showPreMatchScreen() {
             </div>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:12px; margin-top:15px; align-items:center;">
-            <button id="btn-play-match" class="premium-btn btn-gold" style="height:60px; width:140px; padding:0; font-size:16px; border:4px solid #fff; box-shadow:0 6px 0 #c79204;"><span class="btn-text">COMENZAR ▶</span></button>
-            <button id="btn-simulate-match-pre" class="premium-btn" style="height:60px; width:140px; padding:0; font-size:16px; background:#ab47bc; border:4px solid #fff; box-shadow:0 6px 0 #7b1fa2;"><span class="btn-text">RESULTADO 🤖</span></button>
+        <div style="display:flex; gap:10px; margin-top:15px; justify-content:center;">
+            <button id="btn-play-match" class="premium-btn btn-gold" style="height:60px; min-width:140px; padding:0 20px; font-size:16px; border:4px solid #fff; box-shadow:0 6px 0 #c79204;"><span class="btn-text">COMENZAR ▶</span></button>
+            <button id="btn-simulate-match-pre" class="premium-btn" style="height:60px; min-width:140px; padding:0 20px; font-size:16px; background:#ab47bc; border:4px solid #fff; box-shadow:0 6px 0 #7b1fa2;"><span class="btn-text">RESULTADO 🤖</span></button>
         </div>
         <button id="btn-back-to-rival" style="background:transparent; border:none; color:rgba(255,255,255,0.8); padding:15px 30px; font-size:16px; cursor:pointer; text-decoration:underline; text-transform:uppercase; font-weight:900; font-family: Outfit, sans-serif;">← VOLVER A ALINEACIÓN</button>
         </div>

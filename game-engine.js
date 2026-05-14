@@ -960,10 +960,14 @@ function initGame(team, lineupData, rival, rivalLineup, mode, diff, tactic, simu
     countdownInterval = setInterval(() => {
         if (gameState === 'countdown') {
             countdownValue--;
-            if (countdownValue <= 0) {
+            const cd = document.getElementById('countdown-display');
+            if (countdownValue > 0) {
+                if (cd && matchTime === 0) cd.textContent = countdownValue;
+            } else {
                 clearInterval(countdownInterval);
                 countdownInterval = null;
-                document.getElementById('countdown-display').style.display = 'none';
+                if (cd) cd.style.display = 'none';
+                playWhistle(); // Pitido al empezar
                 gameState = 'playing';
             }
         }
@@ -1053,8 +1057,8 @@ function endMatchCountdown() {
             countdownInterval = null;
             cd.style.display = 'none';
             playWhistle();
-            setTimeout(playWhistle, 500);
-            setTimeout(playWhistle, 1000);
+            setTimeout(playWhistle, 400);
+            setTimeout(playWhistle, 800);
             gameState = 'end_celebration';
             setTimeout(endMatch, 8000); // Aumentado a 8 segundos para que se vea bien la celebración y el llanto
         }
@@ -1103,21 +1107,21 @@ function scoreGoal(teamIndex) {
         countdownValue = 3;
         playWhistle();
         const cd = document.getElementById('countdown-display');
-        cd.style.display = 'block';
-        cd.textContent = '3';
-        if (countdownInterval) clearInterval(countdownInterval);
+        if (cd && matchTime === 0) {
+            cd.style.display = 'block';
+            cd.textContent = '3';
+        }
         countdownInterval = setInterval(() => {
             if (gameState !== 'countdown') {
                 clearInterval(countdownInterval);
                 return;
             }
             countdownValue--;
-            if (countdownValue > 0) {
-                cd.textContent = countdownValue;
-            } else {
+            if (countdownValue <= 0) {
                 clearInterval(countdownInterval);
                 countdownInterval = null;
                 cd.style.display = 'none';
+                playWhistle(); // Pitido tras gol
                 gameState = 'playing';
             }
         }, 1000);
