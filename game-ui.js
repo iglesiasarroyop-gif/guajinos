@@ -26,7 +26,9 @@ const PRESET_COLORS = [
 
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('game-ui').classList.remove('active');
+    const gameUI = document.getElementById('game-ui');
+    if (gameUI) gameUI.classList.remove('active');
+    
     const el = document.getElementById(id + '-screen');
     if (el) {
         el.classList.add('active');
@@ -738,8 +740,8 @@ function showPreMatchScreen() {
         </div>
 
         <div style="display:flex; gap:10px; margin-top:15px; justify-content:center;">
-            <button id="btn-play-match" class="premium-btn btn-gold" style="height:60px; min-width:140px; padding:0 20px; font-size:16px; border:4px solid #fff; box-shadow:0 6px 0 #c79204;"><span class="btn-text">COMENZAR ▶</span></button>
-            <button id="btn-simulate-match-pre" class="premium-btn" style="height:60px; min-width:140px; padding:0 20px; font-size:16px; background:#ab47bc; border:4px solid #fff; box-shadow:0 6px 0 #7b1fa2;"><span class="btn-text">RESULTADO 🤖</span></button>
+            <button id="btn-play-match" class="premium-btn btn-gold" style="height:60px; min-width:140px; padding:0 20px; font-size:16px; border:4px solid #fff; box-shadow:0 6px 0 #c79204;"><span class="btn-text">COMENZAR</span></button>
+            <button id="btn-simulate-match-pre" class="premium-btn" style="height:60px; min-width:140px; padding:0 20px; font-size:16px; background:#ab47bc; border:4px solid #fff; box-shadow:0 6px 0 #7b1fa2;"><span class="btn-text">RESULTADO</span></button>
         </div>
         <button id="btn-back-to-rival" style="background:transparent; border:none; color:rgba(255,255,255,0.8); padding:15px 30px; font-size:16px; cursor:pointer; text-decoration:underline; text-transform:uppercase; font-weight:900; font-family: Outfit, sans-serif;">← VOLVER A ALINEACIÓN</button>
         </div>
@@ -875,9 +877,20 @@ function renderLeagueHub() {
         }
         const tData = teamsData.find(t => t.nombre === s.teamId);
         const badgeSrc = tData && tData.escudo ? `<img src="${tData.escudo}" style="width:20px;height:20px;object-fit:contain;vertical-align:middle;margin-right:8px">` : '';
+        
+        let formHtml = '<div style="display:flex; justify-content:center;">';
+        if (s.form) {
+            s.form.forEach(res => {
+                const cls = res === 'V' ? 'form-v' : (res === 'D' ? 'form-d' : 'form-e');
+                formHtml += `<span class="form-square ${cls}">${res}</span>`;
+            });
+        }
+        formHtml += '</div>';
+
         tr.innerHTML = `
             <td style="padding:8px 4px; font-weight:900; color:#757575">${idx + 1}</td>
             <td style="padding:8px 4px; display:flex; align-items:center; font-weight:900; color:#000; text-transform:uppercase">${badgeSrc}${s.teamId.toUpperCase()}</td>
+            <td style="padding:8px 4px; text-align:center;">${formHtml}</td>
             <td style="padding:8px 4px; text-align:center; font-weight:900; color:#f57c00">${s.pts}</td>
             <td style="padding:8px 4px; text-align:center; font-weight:900; color:#000">${s.pld}</td>
             <td style="padding:8px 4px; text-align:center; font-weight:900; color:#000">${s.w}</td>

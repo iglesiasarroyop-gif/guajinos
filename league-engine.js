@@ -136,6 +136,27 @@ function updateStandings() {
         });
     });
 
+    // Recalcular forma (últimos 5 partidos)
+    leagueState.standings.forEach(s => {
+        const teamResults = [];
+        // Recorrer todas las jornadas jugadas hasta ahora para este equipo
+        leagueState.schedule.forEach(day => {
+            day.matches.forEach(m => {
+                if (m.played && (m.home === s.teamId || m.away === s.teamId)) {
+                    const isHome = m.home === s.teamId;
+                    const teamScore = isHome ? m.homeScore : m.awayScore;
+                    const rivalScore = isHome ? m.awayScore : m.homeScore;
+                    
+                    if (teamScore > rivalScore) teamResults.push('V');
+                    else if (teamScore < rivalScore) teamResults.push('D');
+                    else teamResults.push('E');
+                }
+            });
+        });
+        // Quedarse con los últimos 5
+        s.form = teamResults.slice(-5);
+    });
+
     // Sort standings
     leagueState.standings.sort((a, b) => {
         if (b.pts !== a.pts) return b.pts - a.pts;
