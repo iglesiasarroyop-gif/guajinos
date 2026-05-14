@@ -139,16 +139,30 @@ window.addEventListener('touchstart', () => {
 let wakeLock = null;
 async function requestWakeLock() {
     try {
+        // 1. Intentar Wake Lock API (Estándar moderno)
         if ('wakeLock' in navigator) {
             wakeLock = await navigator.wakeLock.request('screen');
             wakeLock.addEventListener('release', () => {
                 console.log('Wake Lock was released');
             });
         }
+        
+        // 2. Truco del video para iOS/Android antiguo (Fallback)
+        const noSleepVid = document.getElementById('no-sleep-video');
+        if (noSleepVid) {
+            noSleepVid.play().catch(e => console.log("Video NoSleep esperando interacción"));
+        }
     } catch (err) {
         console.error(`${err.name}, ${err.message}`);
     }
 }
+
+// Heartbeat para mantener despierto el dispositivo
+setInterval(() => {
+    if (gameState === 'playing' || gameState === 'entrance' || gameState === 'countdown') {
+        requestWakeLock();
+    }
+}, 30000);
 
 function releaseWakeLock() {
     if (wakeLock !== null) {
@@ -167,6 +181,8 @@ function stopGame(){
     stopBooSound();
     if(gameState === 'idle') playMenuMusic();
     releaseWakeLock();
+    const noSleepVid = document.getElementById('no-sleep-video');
+    if (noSleepVid) noSleepVid.pause();
 }
 
 function pauseGame(){ if(gameState==='playing'||gameState==='countdown'){ gameState='paused' } }

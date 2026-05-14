@@ -417,8 +417,7 @@ canvas{display:block;max-width:100%;max-height:100%}
 .position-slot .pos-player{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-size:12px;font-family:'Luckiest Guy', cursive;color:#000;text-align:center;line-height:1;background:var(--secondary-yellow);padding:3px 10px;border-radius:6px;border:2px solid #000;white-space:nowrap;box-shadow: 0 2px 4px var(--primary-blue);z-index: 12}
 .position-slot .pos-player-top{position:absolute;top:-22px;bottom:auto;left:50%;transform:translateX(-50%);font-size:12px;font-family:'Luckiest Guy', cursive;color:#000;text-align:center;line-height:1;background:var(--secondary-yellow);padding:3px 10px;border-radius:6px;border:2px solid #000;white-space:nowrap;box-shadow: 0 2px 4px var(--primary-blue);z-index: 12}
 
-.btn-game-sound{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.2);border:3px solid rgba(255,255,255,0.7);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 0 rgba(0,0,0,0.3);transition:all .1s;}
-.btn-game-sound:active{transform:translateY(2px);box-shadow:none;}
+/* Estilo antiguo eliminado */
 
 .lineup-right-col {
     width: 220px;
@@ -580,11 +579,11 @@ canvas{display:block;max-width:100%;max-height:100%}
 }
 .controls-hint{display:none}
 .game-btn-group{position:absolute;top:4px;right:10px;display:flex;flex-direction:row;gap:8px;z-index:100;opacity:0.7;pointer-events:auto;}
-.game-btn-group .btn-fullscreen,.game-btn-group .btn-tactic-game,.game-btn-group .btn-end-match{position:relative;width:36px;height:36px;border-radius:12px;background:#2196f3;border:4px solid #000;color:#fff;font-size:16px;cursor:pointer;transition:all .1s;display:flex;align-items:center;justify-content:center;box-shadow:none;text-shadow:2px 2px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000}
+.game-btn-group .btn-fullscreen,.game-btn-group .btn-tactic-game,.game-btn-group .btn-end-match,.game-btn-group .btn-game-sound{position:relative;width:36px;height:36px;border-radius:12px;background:#2196f3;border:4px solid #000;color:#fff;font-size:16px;cursor:pointer;transition:all .1s;display:flex;align-items:center;justify-content:center;box-shadow:none;text-shadow:2px 2px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000}
 .game-btn-group .btn-end-match{background:#e53935}
-.game-btn-group .btn-fullscreen:hover,.game-btn-group .btn-tactic-game:hover{background:#42a5f5;transform:translateY(-1px)}
+.game-btn-group .btn-fullscreen:hover,.game-btn-group .btn-tactic-game:hover,.game-btn-group .btn-game-sound:hover{background:#42a5f5;transform:translateY(-1px)}
 .game-btn-group .btn-end-match:hover{background:#f44336;transform:translateY(-1px)}
-.game-btn-group .btn-fullscreen:active,.game-btn-group .btn-tactic-game:active,.game-btn-group .btn-end-match:active{transform:translateY(1px)}
+.game-btn-group .btn-fullscreen:active,.game-btn-group .btn-tactic-game:active,.game-btn-group .btn-end-match:active,.game-btn-group .btn-game-sound:active{transform:translateY(1px)}
 
 /* LEAGUE HUB STYLES */
 #league-hub-screen {
