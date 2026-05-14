@@ -453,9 +453,11 @@ function renderLineup() {
                 displayName = firstName + " " + lastName.charAt(0) + ".";
             }
             
-            const playerShirtColor = slot.role === 'goalie' || slot.role === 'goalkeeper' ? '#aaaaaa' : shirtColor;
-            const playerPantsColor = slot.role === 'goalie' || slot.role === 'goalkeeper' ? '#555555' : pantsColor;
-            el.innerHTML = `<div class="pos-circle" style="background:${playerShirtColor};border:3px solid ${playerPantsColor};"><span class="pos-label">${slot.label}</span></div><div class="pos-player">${displayName}</div>`;
+            const isGK = slot.role === 'goalie' || slot.role === 'goalkeeper';
+            const playerShirtColor = isGK ? '#aaaaaa' : shirtColor;
+            const playerPantsColor = isGK ? '#555555' : pantsColor;
+            const nameClass = isGK ? 'pos-player-top' : 'pos-player';
+            el.innerHTML = `<div class="pos-circle" style="background:${playerShirtColor};border:3px solid ${playerPantsColor};"><span class="pos-label">${slot.label}</span></div><div class="${nameClass}">${displayName}</div>`;
         } else {
             el.innerHTML = `<div class="pos-circle"><span class="pos-label">${slot.label}</span></div>`;
         }
@@ -735,9 +737,9 @@ function showPreMatchScreen() {
             </div>
         </div>
 
-        <div style="display:flex; gap:20px; margin-top:15px">
-            <button id="btn-play-match" class="premium-btn btn-gold" style="height:80px; padding:0 40px; font-size:24px; border:4px solid #fff; box-shadow:0 8px 0 #c79204;"><span class="btn-text">COMENZAR ▶</span></button>
-            <button id="btn-simulate-match-pre" class="premium-btn" style="height:80px; padding:0 40px; font-size:24px; background:#ab47bc; border:4px solid #fff; box-shadow:0 8px 0 #7b1fa2;"><span class="btn-text">RESULTADO 🤖</span></button>
+        <div style="display:flex; gap:15px; margin-top:15px; flex-wrap:wrap; justify-content:center;">
+            <button id="btn-play-match" class="premium-btn btn-gold" style="height:80px; min-width:220px; padding:0 30px; font-size:22px; border:4px solid #fff; box-shadow:0 8px 0 #c79204;"><span class="btn-text">COMENZAR ▶</span></button>
+            <button id="btn-simulate-match-pre" class="premium-btn" style="height:80px; min-width:220px; padding:0 30px; font-size:22px; background:#ab47bc; border:4px solid #fff; box-shadow:0 8px 0 #7b1fa2;"><span class="btn-text">RESULTADO 🤖</span></button>
         </div>
         <button id="btn-back-to-rival" style="background:transparent; border:none; color:rgba(255,255,255,0.8); padding:15px 30px; font-size:16px; cursor:pointer; text-decoration:underline; text-transform:uppercase; font-weight:900; font-family: Outfit, sans-serif;">← VOLVER A ALINEACIÓN</button>
         </div>
@@ -767,7 +769,7 @@ function showPreMatchScreen() {
     document.getElementById('btn-play-match').addEventListener('click', () => {
         cancelAnimationFrame(animReq);
         overlay.remove();
-        startMatch(false);
+        startMatch(true); // Simulación automática: IA controla todos los jugadores
     });
 
     document.getElementById('btn-simulate-match-pre').addEventListener('click', () => {

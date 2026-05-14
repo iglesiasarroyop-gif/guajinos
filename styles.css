@@ -310,7 +310,7 @@ canvas{display:block;max-width:100%;max-height:100%}
     background: var(--secondary-yellow);
     border-bottom: 4px solid #000;
     z-index: 100;
-    gap: 10px;
+    position: relative;
 }
 
 .lineup-team-pill {
@@ -321,10 +321,11 @@ canvas{display:block;max-width:100%;max-height:100%}
     border: 4px solid #000;
     border-radius: 50px;
     padding: 6px 20px;
-    flex: 1;
     max-width: 600px;
-    margin: 0 auto;
     box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .lineup-team-pill img {
@@ -399,6 +400,7 @@ canvas{display:block;max-width:100%;max-height:100%}
 .position-slot.active .pos-circle{border-color:#fff;box-shadow:0 0 20px #fff;transform:scale(1.15)}
 .position-slot .pos-label{font-size:16px;font-family:'Luckiest Guy', cursive;text-transform:uppercase;color:#fff;text-shadow: 1.5px 1.5px 0 #000; z-index: 2}
 .position-slot .pos-player{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-size:12px;font-family:'Luckiest Guy', cursive;color:#000;text-align:center;line-height:1;background:var(--secondary-yellow);padding:3px 10px;border-radius:6px;border:2px solid #000;white-space:nowrap;box-shadow: 0 2px 4px var(--primary-blue);z-index: 12}
+.position-slot .pos-player-top{position:absolute;top:-22px;bottom:auto;left:50%;transform:translateX(-50%);font-size:12px;font-family:'Luckiest Guy', cursive;color:#000;text-align:center;line-height:1;background:var(--secondary-yellow);padding:3px 10px;border-radius:6px;border:2px solid #000;white-space:nowrap;box-shadow: 0 2px 4px var(--primary-blue);z-index: 12}
 
 .lineup-right-col {
     width: 220px;
@@ -567,6 +569,9 @@ canvas{display:block;max-width:100%;max-height:100%}
 .game-btn-group .btn-fullscreen:active,.game-btn-group .btn-tactic-game:active,.game-btn-group .btn-end-match:active{transform:translateY(1px)}
 
 /* LEAGUE HUB STYLES */
+#league-hub-screen {
+    overflow-y: auto;
+}
 #league-hub-screen, #league-hub-screen * {
     font-family: 'Outfit', sans-serif !important;
 }
