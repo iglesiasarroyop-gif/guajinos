@@ -92,6 +92,28 @@ async function build() {
         console.warn(`⚠️  No se encontró el archivo de música de menú en ${menuMusicPath}`);
     }
 
+    // 3.4. Embeber pitido normal como base64
+    console.log('🎺 Embebiendo pitido normal...');
+    const whistlePath = 'musica/pitido.mp3';
+    const fullWhistlePath = path.join(__dirname, whistlePath);
+    if (fs.existsSync(fullWhistlePath)) {
+        const whistleB64 = fs.readFileSync(fullWhistlePath).toString('base64');
+        const whistleDataUri = `data:audio/mpeg;base64,${whistleB64}`;
+        allJs = allJs.split(whistlePath).join(whistleDataUri);
+        console.log('✅ Pitido normal embebido');
+    }
+
+    // 3.5. Embeber pitido final como base64
+    console.log('🏁 Embebiendo pitido final...');
+    const finalWhistlePath = 'musica/pitidoFinal.mp3';
+    const fullFinalWhistlePath = path.join(__dirname, finalWhistlePath);
+    if (fs.existsSync(fullFinalWhistlePath)) {
+        const finalWhistleB64 = fs.readFileSync(fullFinalWhistlePath).toString('base64');
+        const finalWhistleDataUri = `data:audio/mpeg;base64,${finalWhistleB64}`;
+        allJs = allJs.split(finalWhistlePath).join(finalWhistleDataUri);
+        console.log('✅ Pitido final embebido');
+    }
+
     // 4. Minificar con Terser
     console.log('📦 Minificando JavaScript...');
     const minified = await minify(allJs, {

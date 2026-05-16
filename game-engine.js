@@ -1,7 +1,7 @@
 // ===== MOTOR DEL JUEGO =====
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-let width, height, score, gameState='idle', matchTime=0, matchTimerInterval=null, countdownValue=0, countdownInterval=null, goalTimeout=null;
+let width, height, centerY, score, gameState='idle', matchTime=0, matchTimerInterval=null, countdownValue=0, countdownInterval=null, goalTimeout=null;
 let pixelScale = 1; // Factor de escala para jugadores/balón según resolución
 let isTouchDevice = false;
 window.addEventListener('touchstart', function onFirstTouch() {
@@ -16,10 +16,31 @@ let lastBallX = 0, lastBallY = 0, ballStuckTimer = 0;
 const keys={w:false,a:false,s:false,d:false,arrowup:false,arrowleft:false,arrowdown:false,arrowright:false};
 const touchState={joystickActive:false,joystickOrigin:{x:0,y:0},joystickCurrent:{x:0,y:0},joystickDir:{x:0,y:0}};
 let currentGameMode='match', currentAiDiff=1.0, isSimulation=false;
+let activeSkills = []; // Habilidades activas en el partido actual
+let activeSkillTimers = {}; // Tiempos restantes de las habilidades
+let usedSkills = []; // Habilidades ya consumidas
 let audioCtx=null;
 function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)()}
 function playSound(freq,dur,type='sine'){if(!audioCtx)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(.3,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.01,audioCtx.currentTime+dur);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur)}
-function playWhistle(){playSound(800,.15);setTimeout(()=>playSound(800,.15),200)}
+function playWhistle() {
+    if (!whistleSound) {
+        whistleSound = new Audio(typeof WHISTLE_SOUND_PATH !== 'undefined' ? WHISTLE_SOUND_PATH : 'musica/pitido.mp3');
+        whistleSound.volume = 0.5;
+    }
+    whistleSound.muted = isGameMuted;
+    whistleSound.currentTime = 0;
+    whistleSound.play().catch(e => console.log("Error pitido:", e));
+}
+
+function playFinalWhistle() {
+    if (!finalWhistleSound) {
+        finalWhistleSound = new Audio(typeof FINAL_WHISTLE_SOUND_PATH !== 'undefined' ? FINAL_WHISTLE_SOUND_PATH : 'musica/pitidoFinal.mp3');
+        finalWhistleSound.volume = 0.6;
+    }
+    finalWhistleSound.muted = isGameMuted;
+    finalWhistleSound.currentTime = 0;
+    finalWhistleSound.play().catch(e => console.log("Error pitido final:", e));
+}
 let kickoffTeam = 0;
 let localScorers = [];
 let rivalScorers = [];
@@ -28,6 +49,8 @@ let bgMusic = null;
 let goalSound = null;
 let booSound = null;
 let menuMusic = null;
+let whistleSound = null;
+let finalWhistleSound = null;
 let isGameMuted = false;
 
 function setGameMute(muted) {
@@ -36,6 +59,8 @@ function setGameMute(muted) {
     if (goalSound) goalSound.muted = muted;
     if (booSound) booSound.muted = muted;
     if (menuMusic) menuMusic.muted = muted;
+    if (whistleSound) whistleSound.muted = muted;
+    if (finalWhistleSound) finalWhistleSound.muted = muted;
 }
 
 function playAmbientMusic() {
@@ -191,17 +216,17 @@ class Ball{
     constructor(){
         this.baseRadius=5.5;
         this.radius=this.baseRadius * pixelScale;
-        this.gravity=.3 * pixelScale;
-        this.bounce=.6;
-        this.frictionGround=.975;
-        this.frictionAir=.99;
+        this.gravity=.32 * pixelScale;
+        this.bounce=.55;
+        this.frictionGround=.96;
+        this.frictionAir=.985;
         this.reset();
     }
     reset(){
         this.radius = this.baseRadius * pixelScale;
         this.gravity = .3 * pixelScale;
         this.x=width/2;
-        this.y=height/2;
+        this.y=centerY;
         this.z=0;this.vx=0;this.vy=0;this.vz=0;
     }
     update(){
@@ -403,7 +428,7 @@ class Player{
         this.headColor=skinColors[Math.floor(Math.random()*skinColors.length)];
         
         this.isGoalie=isGoalie;this.isUser=false;this.isEmergencyGoalkeeper=false;
-        this.baseMaxSpeed=(isGoalie?2.2:3.8) * pixelScale;
+        this.baseMaxSpeed=(isGoalie?3.0:3.8) * pixelScale; // Portero más rápido
         this.walkPhase=0;
         this.tears = [];
         this.speechBubble = null;
@@ -411,22 +436,33 @@ class Player{
         // Bias boots toward black (4 out of 6 chances)
         const bootColors=['#111111','#111111','#111111','#111111','#ff9800','#ffeb3b'];
         this.bootColor=bootColors[Math.floor(Math.random()*bootColors.length)];
+        this.personalOffset = Math.random() * 100; // Ruido personal para IA
+        this.targetX = null;
+        this.targetY = null;
         this.reset();
     }
     get maxSpeed(){
+        let bonus = 1.0;
+        if(this.team === 0 && activeSkills.includes('speed')) bonus = 2.0;
+        
         if(this.team===1&&!this.isUser)return this.baseMaxSpeed*currentAiDiff;
-        if((this.team===0)&&(this.isGoalie||this.isEmergencyGoalkeeper))return this.baseMaxSpeed*0.85;
-        return this.baseMaxSpeed;
+        if((this.team===0)&&(this.isGoalie||this.isEmergencyGoalkeeper))return this.baseMaxSpeed*0.85 * bonus;
+        return this.baseMaxSpeed * bonus;
     }
     reset(){
         this.radius = 11 * pixelScale;
         this.baseMaxSpeed = (this.isGoalie ? 2.2 : 3.8) * pixelScale;
         this.x=width*this.baseRelX;this.y=height*this.baseRelY;this.vx=0;this.vy=0;this.angle=this.team===0?0:Math.PI;
+        this.targetX = this.x; this.targetY = this.y;
     }
     getHomePosition(teamHasBall){
-        let sx=teamHasBall?.1:-.05,rx=this.baseRelX+(this.team===0?sx:-sx);
+        // Pequeño ruido individual para no formar líneas perfectas
+        let noiseX = Math.cos(Date.now() * 0.001 + this.personalOffset) * 0.015;
+        let noiseY = Math.sin(Date.now() * 0.001 + this.personalOffset) * 0.025;
+        let sx=teamHasBall?.1:-.05,rx=this.baseRelX+(this.team===0?sx:-sx) + noiseX;
         rx=Math.max(.1,Math.min(.9,rx));
-        let ry=this.baseRelY+(ball.y/height-.5)*.4;ry=Math.max(.1,Math.min(.9,ry));
+        let ry=this.baseRelY+(ball.y/height-.5)*.4 + noiseY;
+        ry=Math.max(.1,Math.min(.9,ry));
         return{x:width*rx,y:height*ry};
     }
     kick(b,power,tv=null){
@@ -448,14 +484,14 @@ class Player{
             if(touchState.joystickActive){dx+=touchState.joystickDir.x;dy+=touchState.joystickDir.y}
             const l=Math.hypot(dx,dy);if(l>0){dx/=l;dy/=l;moving=true}
         }else if(this.isGoalie||(this.isEmergencyGoalkeeper&&!this.isUser)){
-            const gt=height/2-60,gb=height/2+60,baseX=this.team===0?0.05:0.95;
+            const gt=centerY-60,gb=centerY+60,baseX=this.team===0?0.05:0.95;
             let ty=Math.max(gt,Math.min(gb,b.y)),tx=width*baseX;
             const d2b=Math.hypot(b.x-this.x,b.y-this.y);
             if(d2b<width*.25){tx+=(this.team===0?1:-1)*width*.08;ty=b.y}
             this.angle=this.team===0?0:Math.PI;dx=tx-this.x;dy=ty-this.y;
             const l=Math.hypot(dx,dy);if(l>5){dx/=l;dy/=l;moving=true}
-        }else if(this.isEmergencyGoalkeeper&&this.isUser){
-            const gt=height/2-60,gb=height/2+60;let ty=Math.max(gt,Math.min(gb,b.y)),tx=width*0.05;
+            }else if(this.isEmergencyGoalkeeper&&this.isUser){
+            const gt=centerY-60,gb=centerY+60;let ty=Math.max(gt,Math.min(gb,b.y)),tx=width*0.05;
             const d2b=Math.hypot(b.x-this.x,b.y-this.y);
             if(d2b<width*.25){tx=width*0.15;ty=b.y}
             this.angle=0;dx=tx-this.x;dy=ty-this.y;
@@ -464,8 +500,19 @@ class Player{
             let tx=this.x,ty=this.y;
             const isC=(this.team===0&&this===teamA_closest)||(this.team===1&&this===teamB_closest);
             const thb=currentPossessor&&currentPossessor.team===this.team;
+            
+            // Mejora de realismo: Solo el jugador más cercano presiona al rival.
+            // Evitamos que se amontonen varios jugadores (enjambre).
+            const d2b = Math.hypot(b.x - this.x, b.y - this.y);
+            const opponentHasBall = currentPossessor && currentPossessor.team !== this.team;
+            const ballIsLoose = !currentPossessor;
+            
+            // Solo presionamos si somos el más cercano (isC). 
+            // Eliminamos la presión por proximidad genérica para evitar el "enjambre".
+            const shouldChase = isC; 
+
             if(this===currentPossessor){
-                const gx=this.team===0?width:0,d2g=Math.hypot(gx-this.x,height/2-this.y);
+                const gx=this.team===0?width:0,d2g=Math.hypot(gx-this.x,centerY-this.y);
                 const tm=players.filter(p=>p.team===this.team&&p!==this&&!p.isGoalie);
                 const fw=tm.filter(t=>this.team===0?t.x>this.x+30:t.x<this.x-30);
                 let passed=false;
@@ -474,15 +521,37 @@ class Player{
                     this.kick(b,.5,{x:Math.cos(a),y:Math.sin(a)});passed=true;
                 }
                 if(!passed){if(d2g<width*.4&&Math.random()<.04*currentAiDiff){
-                    const a=Math.atan2(height/2-this.y+(Math.random()*40-20),gx-this.x);
+                    const a=Math.atan2(centerY-this.y+(Math.random()*40-20),gx-this.x);
                     this.kick(b,.8,{x:Math.cos(a),y:Math.sin(a)});
-                }else{tx=gx;ty=height/2}}
-            }else if(isC&&!thb){tx=b.x+b.vx*15;ty=b.y+b.vy*15}
-            else{const h=this.getHomePosition(thb);tx=h.x;ty=h.y}
+                }else{tx=gx;ty=centerY}}
+            }else if(shouldChase){
+                // Persecución más agresiva y predictiva
+                tx=b.x+b.vx*8;ty=b.y+b.vy*8;
+            }else{
+                const h=this.getHomePosition(thb);
+                if (this.targetX === null) { this.targetX = h.x; this.targetY = h.y; }
+                const reactionSpeed = 0.05 + (this.personalOffset % 0.05);
+                this.targetX += (h.x - this.targetX) * reactionSpeed;
+                this.targetY += (h.y - this.targetY) * reactionSpeed;
+                tx = this.targetX; ty = this.targetY;
+            }
             dx=tx-this.x;dy=ty-this.y;const l=Math.hypot(dx,dy);if(l>5){dx/=l;dy/=l;moving=true}
         }
-        const acc=.45,fr=.85;
-        if(moving){this.vx+=dx*acc;this.vy+=dy*acc;if(!this.isGoalie||this.isUser)this.angle=Math.atan2(dy,dx)}
+        let acc=.45;
+        const fr=.85;
+        if (this.team === 0 && typeof activeSkills !== 'undefined' && activeSkills.includes('speed')) {
+            acc *= 2.0;
+        }
+        if(moving){
+            this.vx+=dx*acc;this.vy+=dy*acc;
+            if(!this.isGoalie||this.isUser){
+                let targetAngle = Math.atan2(dy,dx);
+                let diff = targetAngle - this.angle;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                this.angle += diff * 0.25; // Rotación suave e inercial
+            }
+        }
         this.vx*=fr;this.vy*=fr;
         const cs=Math.hypot(this.vx,this.vy);
         if(cs>this.maxSpeed){this.vx=this.vx/cs*this.maxSpeed;this.vy=this.vy/cs*this.maxSpeed}
@@ -501,8 +570,8 @@ class Player{
             const minX=this.team===0?this.radius+5:width*0.85-this.radius;
             const maxX=this.team===0?width*0.15+this.radius:width-this.radius-5;
             const goalBoxH=70;
-            const minY=height/2-goalBoxH+this.radius;
-            const maxY=height/2+goalBoxH-this.radius;
+            const minY=centerY-goalBoxH+this.radius;
+            const maxY=centerY+goalBoxH-this.radius;
             this.x=Math.max(minX,Math.min(maxX,this.x));
             this.y=Math.max(minY,Math.min(maxY,this.y));
         }else{
@@ -516,11 +585,13 @@ class Player{
                 const ma=Math.atan2(this.vy,this.vx);
                 const bx=(b.x-this.x)/d2b,by=(b.y-this.y)/d2b,mx=Math.cos(ma),my=Math.sin(ma);
                 if(bx*mx+by*my>.3){
-                    const sx=this.x+mx*(this.radius+b.radius+3),sy=this.y+my*(this.radius+b.radius+3);
-                    b.vx+=(sx-b.x)*.15;b.vy+=(sy-b.y)*.15;
+                    // Adelanta el balón un poco más al correr pero con mayor control
+                    const sx=this.x+mx*(this.radius+b.radius+4),sy=this.y+my*(this.radius+b.radius+4);
+                    b.vx+=(sx-b.x)*.2;b.vy+=(sy-b.y)*.2;
                 }
             }
-            b.vx+=(this.vx-b.vx)*.08;b.vy+=(this.vy-b.vy)*.08;
+            // Retención más estrecha del balón al caminar/girar
+            b.vx+=(this.vx-b.vx)*.12;b.vy+=(this.vy-b.vy)*.12;
         }
     }
     draw(c){
@@ -528,223 +599,315 @@ class Player{
         const animCos = Math.cos(this.walkPhase);
         const isLoser = gameState === 'end_celebration' && ((score[0] > score[1] && this.team === 1) || (score[1] > score[0] && this.team === 0));
         
-        // Sombra base
-        c.beginPath();c.ellipse(this.x,this.y + 10 * pixelScale,this.radius,4 * pixelScale,0,0,Math.PI*2);c.fillStyle='rgba(0,0,0,0.2)';c.fill();
-        
-        // Indicador de selección
-        if(this.isUser){
-            c.beginPath();c.ellipse(this.x,this.y + 12 * pixelScale, 16 * pixelScale, 7 * pixelScale,0,0,Math.PI*2);
-            c.fillStyle='rgba(255,255,255,0.3)';c.fill();
-            c.strokeStyle='rgba(255,255,255,0.8)';c.lineWidth=2;c.stroke();
-        }
-        
         const scoredTeam = gameState === 'goal' ? (kickoffTeam === 1 ? 0 : 1) : -1;
         const winnerTeam = (gameState === 'end_celebration') ? (score[0] > score[1] ? 0 : (score[1] > score[0] ? 1 : -1)) : -1;
         const isCelebrating = (this.team === scoredTeam) || (this.team === winnerTeam);
-        const jumpY = isCelebrating ? Math.abs(Math.sin(Date.now() * 0.015)) * 10 * pixelScale : 0;
+        
+        // Dynamismo (Salto asíncrono para celebraciones más naturales)
+        const jumpSeed = (players.indexOf(this) * 0.5);
+        const jumpY = isCelebrating ? Math.abs(Math.sin(Date.now() * 0.012 + jumpSeed)) * 12 * pixelScale : 0;
+        const speed = Math.hypot(this.vx, this.vy);
+        const isRunning = speed > 0.5;
+
+        // Sombra dinámica base (ambient occlusion + proyección)
+        const shadowScale = Math.max(0.3, 1 - (jumpY / (10 * pixelScale)) * 0.5);
+        c.beginPath();
+        c.ellipse(this.x, this.y + 10 * pixelScale, this.radius * shadowScale, 4 * pixelScale * shadowScale, 0, 0, Math.PI*2);
+        c.fillStyle = 'rgba(0,0,0,0.25)';
+        c.fill();
+        
+        // Indicador de selección premium (Aura dorada suave)
+        if(this.isUser){
+            const ringGlow = Math.abs(Math.sin(Date.now() * 0.005)) * 0.5 + 0.5;
+            c.beginPath();
+            c.ellipse(this.x, this.y + 12 * pixelScale, 16 * pixelScale, 7 * pixelScale, 0, 0, Math.PI*2);
+            c.fillStyle = `rgba(255, 215, 0, ${0.2 * ringGlow})`;
+            c.fill();
+            c.strokeStyle = `rgba(255, 215, 0, ${0.8 * ringGlow})`;
+            c.lineWidth = 2;
+            c.stroke();
+        }
 
         c.save();
         c.translate(this.x, this.y - jumpY + 5 * pixelScale);
         c.scale(0.66, 0.66);
         c.rotate(this.angle);
         c.lineWidth = 1.5;
-        c.strokeStyle = '#000';
+        c.strokeStyle = 'rgba(0,0,0,0.4)'; // Bordes más suaves estilo juguete
         
         const actualRadius = this.radius;
-        this.radius = 16 * pixelScale;
+        this.radius = 18 * pixelScale;
 
-        // Pies flotantes - Botas Adidas Negras
-        const footY = 10;
-        const footOsc = isLoser ? Math.sin(Date.now()*0.01)*2 : anim * 10;
+        // Pies - Botas estilo vinilo brillante (ahora más visibles y grandes)
+        const footY = 13; // Separación lateral
+        const footBaseX = 6; // Botas más metidas en el cuerpo (antes 10)
+        const footOsc = isLoser ? Math.sin(Date.now()*0.01)*2 : anim * 12;
         
-        const drawAdidasBootTopDown = (bx, by) => {
+        const drawBoot = (bx, by) => {
             c.save();
             c.translate(bx, by);
-            c.fillStyle = '#000';
-            c.beginPath(); c.ellipse(0, 0, 7, 4.5, 0, 0, Math.PI*2); c.fill(); c.stroke();
-            // 3 Rayas Adidas
-            c.strokeStyle = '#fff'; c.lineWidth = 1;
+            // Ligera rotación para que miren un poco hacia afuera
+            c.rotate(by > 0 ? 0.2 : -0.2);
+            const grad = c.createRadialGradient(-1.5, -1.5, 0, 0, 0, 6);
+            grad.addColorStop(0, '#555'); 
+            grad.addColorStop(1, '#111');
+            c.fillStyle = grad;
+            c.beginPath(); c.ellipse(0, 0, 6, 3.8, 0, 0, Math.PI*2); c.fill(); c.stroke();
+            // 3 Rayas Adidas más gruesas
+            c.strokeStyle = 'rgba(255,255,255,0.8)'; c.lineWidth = 1.5;
             for(let i=0; i<3; i++) {
-                c.beginPath();
-                c.moveTo(-2 + i*2, -2);
-                c.lineTo(-3 + i*2, 2);
-                c.stroke();
+                c.beginPath(); c.moveTo(-2.5 + i*2.5, -2.5); c.lineTo(-3.5 + i*2.5, 2.5); c.stroke();
             }
             c.restore();
         };
 
-        drawAdidasBootTopDown(footOsc, -footY);
-        drawAdidasBootTopDown(-footOsc, footY);
+        drawBoot(footBaseX + footOsc, -footY);
+        drawBoot(footBaseX - footOsc, footY);
 
-        // Manos flotantes
-        const handY = 14;
-        const handX = 4;
-        const handOsc = isLoser ? Math.cos(Date.now()*0.01)*2 : animCos * 6;
-        c.fillStyle = this.headColor;
-        c.beginPath(); c.ellipse(handX + handOsc, -handY, 4.5, 4.5, 0, 0, Math.PI*2); c.fill(); c.stroke();
-        c.beginPath(); c.ellipse(handX - handOsc, handY, 4.5, 4.5, 0, 0, Math.PI*2); c.fill(); c.stroke();
 
-        // Cuerpo principal (Camiseta de bebé)
-        c.fillStyle = this.shirtColor;
+
+        // Cuerpo (Camiseta) - Gradiente de volumen de plástico
+        const shirtGrad = c.createRadialGradient(-this.radius*0.3, -this.radius*0.3, 0, 0, 0, this.radius);
+        shirtGrad.addColorStop(0, '#ffffff'); // Rim light fuerte
+        shirtGrad.addColorStop(0.3, this.shirtColor);
+        shirtGrad.addColorStop(1, '#1a1a1a'); // Core shadow
+        
+        c.fillStyle = shirtGrad;
         c.beginPath();
         c.arc(0, 0, this.radius * 0.95, 0, Math.PI*2);
         c.fill();
         c.stroke();
         
-        // Pañal (Mitad trasera del cuerpo - Un poco más grande)
-        c.fillStyle = '#fff';
+        // Pañal - Textura y volumen acentuado
+        const diaperGrad = c.createRadialGradient(0, 0, this.radius*0.5, 0, 0, this.radius*0.95);
+        diaperGrad.addColorStop(0, '#ffffff');
+        diaperGrad.addColorStop(1, '#dcdcdc');
+        
+        c.fillStyle = diaperGrad;
         c.beginPath();
         c.arc(0, 0, this.radius * 0.95, Math.PI * 0.65, Math.PI * 1.35); 
         c.fill();
+        c.strokeStyle = 'rgba(0,0,0,0.5)';
+        c.stroke();
+        // Línea de pliegue del pañal
+        c.beginPath();
+        c.arc(0, 0, this.radius * 0.8, Math.PI * 0.7, Math.PI * 1.3);
+        c.strokeStyle = 'rgba(0,0,0,0.15)';
         c.stroke();
 
+        // Manos - Dibujadas sobre el cuerpo para ser muy visibles
+        const handY = 17; // Más hacia los bordes
+        const handBaseX = 8; // Más centradas verticalmente
+        const handOsc = isLoser ? Math.cos(Date.now()*0.01)*2 : animCos * 8;
+        
+        const drawHand = (hx, hy) => {
+            const hGrad = c.createRadialGradient(hx - 1.5, hy - 1.5, 0, hx, hy, 4.5);
+            hGrad.addColorStop(0, '#ffffff'); 
+            hGrad.addColorStop(0.3, this.headColor);
+            hGrad.addColorStop(1, '#9e6a4b'); 
+            c.fillStyle = hGrad;
+            c.beginPath(); c.ellipse(hx, hy, 4.5, 4.5, 0, 0, Math.PI*2); c.fill(); c.stroke();
+        };
 
-        // Cabeza (Bebé)
-        c.fillStyle = this.headColor;
+        drawHand(handBaseX + handOsc, -handY);
+        drawHand(handBaseX - handOsc, handY);
 
-
-        // Pelitos de bebé (3 mechones curvos)
-        c.strokeStyle = '#333';
-        c.lineWidth = 1;
-        for(let i=-1; i<=1; i++) {
-            c.beginPath();
-            c.moveTo(this.radius*0.2, i*3);
-            c.quadraticCurveTo(0, i*5 - 10, -this.radius*0.3, i*3 - 5);
-            c.stroke();
+        // RESTORE y SAVE para separar la rotación de la cabeza (Física Bobble-Head)
+        c.restore();
+        c.save();
+        
+        // Offset de Bobble-head basado en inercia
+        let headOffsetX = 0;
+        let headOffsetY = 0;
+        if (isRunning) {
+            headOffsetX = Math.sin(Date.now() * 0.02) * speed * 0.8;
+            headOffsetY = Math.cos(Date.now() * 0.02) * speed * 0.8;
+        } else if (isLoser) {
+            headOffsetY = Math.sin(Date.now() * 0.005) * 2 + 2; // Cabeza gacha
         }
+        
+        c.translate(this.x + headOffsetX, this.y - jumpY + 5 * pixelScale + headOffsetY);
+        c.scale(0.66, 0.66);
+        // Ligero tambaleo adicional al rotar
+        c.rotate(this.angle + (isRunning ? Math.sin(Date.now() * 0.015) * 0.08 : 0)); 
 
         c.lineWidth = 1.5;
-        c.strokeStyle = '#000';
+        c.strokeStyle = 'rgba(0,0,0,0.4)';
+
+        // Cabeza - Gradiente esférico
+        const headGrad = c.createRadialGradient(-this.radius*0.2, -this.radius*0.2, 0, 0, 0, this.radius*0.75);
+        headGrad.addColorStop(0, '#ffffff');
+        headGrad.addColorStop(0.3, this.headColor);
+        headGrad.addColorStop(1, '#9e6a4b');
+        
+        c.fillStyle = headGrad;
         c.beginPath();
         c.arc(this.radius * 0.3, 0, this.radius * 0.75, 0, Math.PI*2);
         c.fill();
         c.stroke();
-        
-        // Cara (VISTA CENITAL: Desde arriba)
-        const eyeR = 2.2; 
-        const eyeSep = this.radius * 0.28; 
-        c.lineWidth = 0.5; // Borde más pequeño para los ojos
-        // Ojo 1
-        c.fillStyle = '#fff';
-        c.beginPath(); c.arc(this.radius * 0.55, -eyeSep, eyeR, 0, Math.PI*2); c.fill(); c.stroke();
-        c.fillStyle = '#000';
-        c.beginPath(); c.arc(this.radius * 0.55, -eyeSep, eyeR * 0.6, 0, Math.PI*2); c.fill();
-        // Ojo 2
-        c.fillStyle = '#fff';
-        c.beginPath(); c.arc(this.radius * 0.55, eyeSep, eyeR, 0, Math.PI*2); c.fill(); c.stroke();
-        c.fillStyle = '#000';
-        c.beginPath(); c.arc(this.radius * 0.55, eyeSep, eyeR * 0.6, 0, Math.PI*2); c.fill();
-        c.lineWidth = 1.5; // Reset
 
-
-
-
-        if (isLoser) {
-            // Lágrimas: salen de los ojos (vistos desde arriba)
-            if (Math.random() < 0.2) {
-                const side = Math.random() > 0.5 ? 1 : -1;
-                this.tears.push({
-                    rx: this.radius * 0.55, 
-                    ry: side * eyeSep, 
-                    life: 1
-                });
-            }
-        }
-        
-        // Dibujar lágrimas (Dentro del contexto rotado)
-        this.tears = this.tears.filter(t => t.life > 0);
-        c.fillStyle = 'rgba(77, 171, 247, 0.8)';
-        this.tears.forEach(t => {
-            c.beginPath();
-            c.arc(t.rx, t.ry, 2.2, 0, Math.PI*2);
-            c.fill();
-            t.rx += 0.8; // Deslizan hacia adelante (frente de la cara)
-            t.life -= 0.03;
-        });
-        
-        // Chupete visto desde arriba (sobresale un poco por el frente)
-        const pacColor = this.team === 0 ? (gameConfig.userShirtColor || this.shirtColor) : this.shirtColor;
-        c.fillStyle = pacColor;
-        c.beginPath(); c.arc(this.radius * 0.85, 0, 3.5, 0, Math.PI*2); c.fill(); c.stroke(); 
-        c.beginPath(); c.arc(this.radius * 1.0, 0, 2, 0, Math.PI*2); c.stroke(); // Anilla plana desde arriba
-
-        // Cabeza (Bebé)
-        c.restore();
-        c.save();
-        c.translate(this.x, this.y);
-        c.rotate(this.angle);
-
-        c.fillStyle = this.headColor;
-        // Ricito propio de bebé (Nace desde arriba/centro)
-        c.strokeStyle = '#333';
-        c.lineWidth = 1;
+        // Pelitos de bebé
+        c.strokeStyle = 'rgba(0,0,0,0.6)';
+        c.lineWidth = 1.5;
         c.beginPath();
-        c.moveTo(this.radius * 0.2, 0); // Centro coronilla
+        c.moveTo(this.radius * 0.2, 0); 
         c.bezierCurveTo(this.radius * 0.4, -this.radius * 0.3, this.radius * 0.6, 0, this.radius * 0.4, this.radius * 0.2);
         c.stroke();
 
-        // Bocadillo de cómic
-        if (this.speechBubble) {
-            c.restore(); // Salimos del rotate para que el texto no esté girado
-            c.save();
-            c.translate(this.x, this.y - 45);
-            
-            c.fillStyle = '#fff';
+        // Cara (Ojos)
+        const eyeR = 2.2; 
+        const eyeSep = this.radius * 0.28; 
+        c.lineWidth = 0.5; 
+        
+        // Pestañeo procedimental
+        if (Math.random() < 0.01) {
             c.strokeStyle = '#000';
-            c.lineWidth = 1.5;
+            c.beginPath(); c.moveTo(this.radius * 0.55, -eyeSep - eyeR); c.lineTo(this.radius * 0.55, -eyeSep + eyeR); c.stroke();
+            c.beginPath(); c.moveTo(this.radius * 0.55, eyeSep - eyeR); c.lineTo(this.radius * 0.55, eyeSep + eyeR); c.stroke();
+        } else {
+            // Ojo 1
+            c.fillStyle = '#fff';
+            c.beginPath(); c.arc(this.radius * 0.55, -eyeSep, eyeR, 0, Math.PI*2); c.fill(); c.stroke();
+            c.fillStyle = '#111';
+            c.beginPath(); c.arc(this.radius * 0.55 + 0.5, -eyeSep, eyeR * 0.6, 0, Math.PI*2); c.fill(); // Pupila asomando
+            // Ojo 2
+            c.fillStyle = '#fff';
+            c.beginPath(); c.arc(this.radius * 0.55, eyeSep, eyeR, 0, Math.PI*2); c.fill(); c.stroke();
+            c.fillStyle = '#111';
+            c.beginPath(); c.arc(this.radius * 0.55 + 0.5, eyeSep, eyeR * 0.6, 0, Math.PI*2); c.fill();
+        }
+
+        // Lágrimas y Sudor
+        if (isLoser) {
+            if (Math.random() < 0.2) {
+                const side = Math.random() > 0.5 ? 1 : -1;
+                this.tears.push({rx: this.radius * 0.55, ry: side * eyeSep, life: 1, type: 'tear'});
+            }
+        } else if (isRunning && Math.random() < 0.03) {
+            const side = Math.random() > 0.5 ? 1 : -1;
+            this.tears.push({rx: this.radius * 0.3, ry: side * (eyeSep + 4), life: 0.6, type: 'sweat'});
+        }
+        
+        this.tears = this.tears.filter(t => t.life > 0);
+        this.tears.forEach(t => {
+            c.fillStyle = t.type === 'sweat' ? 'rgba(200, 240, 255, 0.6)' : 'rgba(77, 171, 247, 0.8)';
+            c.beginPath();
+            c.arc(t.rx, t.ry, t.type === 'sweat' ? 1.5 : 2.2, 0, Math.PI*2);
+            c.fill();
+            t.rx += 0.8; 
+            t.life -= 0.03;
+        });
+        
+        // Chupete con relieve plástico y vibración
+        const pacColor = this.team === 0 ? (gameConfig.userShirtColor || this.shirtColor) : this.shirtColor;
+        const pacGrad = c.createRadialGradient(this.radius * 0.85 - 1.5, -1.5, 0, this.radius * 0.85, 0, 4);
+        pacGrad.addColorStop(0, '#ffffff'); // Brillo fuerte central
+        pacGrad.addColorStop(0.5, pacColor);
+        pacGrad.addColorStop(1, '#000000');
+        
+        const pacWobble = isRunning ? Math.sin(Date.now() * 0.06) * 1.5 : 0;
+        
+        c.fillStyle = pacGrad;
+        c.lineWidth = 1;
+        c.beginPath(); c.arc(this.radius * 0.85 + pacWobble, 0, 3.8, 0, Math.PI*2); c.fill(); c.stroke(); 
+        
+        // Anilla del chupete (semitransparente)
+        c.strokeStyle = 'rgba(255,255,255,0.85)';
+        c.lineWidth = 1.5;
+        c.beginPath(); c.arc(this.radius * 1.0 + pacWobble, 0, 2.5, 0, Math.PI*2); c.stroke();
+
+        // Bocadillo de Cómic (Textura de papel)
+        if (this.speechBubble) {
+            c.restore(); 
+            c.save();
+            c.translate(this.x, this.y - 45 - jumpY);
             
-            // Globo
+            c.shadowColor = 'rgba(0,0,0,0.15)';
+            c.shadowBlur = 4;
+            c.shadowOffsetY = 2;
+            
+            c.fillStyle = '#fdfbf7'; // Blanco cálido
+            c.strokeStyle = 'rgba(0,0,0,0.1)';
+            c.lineWidth = 1;
+            
             const txt = this.speechBubble;
-            const tw = c.measureText(txt).width + 10;
-            c.beginPath();
-            c.ellipse(0, 0, tw, 12, 0, 0, Math.PI * 2);
-            c.fill(); c.stroke();
+            const tw = c.measureText(txt).width + 16;
             
-            // Pico
-            c.beginPath();
-            c.moveTo(-5, 10); c.lineTo(0, 18); c.lineTo(5, 10);
-            c.fill(); c.stroke();
+            c.beginPath(); c.ellipse(0, 0, tw, 12, 0, 0, Math.PI * 2); c.fill(); c.stroke();
+            c.beginPath(); c.moveTo(-5, 10); c.lineTo(0, 18); c.lineTo(5, 10); c.fill(); c.stroke();
             
-            c.fillStyle = '#000';
-            c.font = 'bold 12px sans-serif';
+            c.shadowColor = 'transparent'; 
+            c.fillStyle = '#222';
+            c.font = 'bold 11px sans-serif';
             c.textAlign = 'center';
             c.fillText(txt, 0, 4);
-            c.save(); // dummy save para el restore final
+            c.save(); 
         }
 
         c.restore();
         this.radius = actualRadius;
 
-        // (Eliminada la sección de dibujo de lágrimas de aquí, movida arriba al contexto rotado)
-        
-        // Etiqueta de nombre
+        // Etiqueta de Nombre Premium (Estilo Dymo / Placa)
         let displayName = this.displayName || this.name || "Jugador";
         if (typeof displayName !== 'string') displayName = String(displayName);
-        c.font = '8px "Luckiest Guy", cursive';
+        c.font = 'bold 7.5px sans-serif'; // Nombres un poco más pequeños y elegantes
         c.textAlign = 'center';
         const txtWidth = c.measureText(displayName).width;
         const rectW = txtWidth + 10;
         const rectH = 12;
         const rectX = this.x - rectW / 2;
-        const rectY = this.y - this.radius - 18;
+        const rectY = this.y - this.radius - 22 - jumpY;
 
-        // Fondo Diferente por equipo y borde Negro
-        c.fillStyle = this.team === 0 ? '#FFCB05' : '#4dabf7'; 
-        c.fillRect(rectX, rectY, rectW, rectH);
-        c.strokeStyle = '#000';
-        c.lineWidth = 2;
-        c.strokeRect(rectX, rectY, rectW, rectH);
+        // Sombra suave de la etiqueta
+        c.fillStyle = 'rgba(0,0,0,0.2)';
+        if (c.roundRect) {
+            c.beginPath(); c.roundRect(rectX + 1, rectY + 2, rectW, rectH, 3); c.fill();
+        } else {
+            c.fillRect(rectX + 1, rectY + 2, rectW, rectH);
+        }
 
-        c.fillStyle = '#000';
-        c.textBaseline = 'middle';
-        c.fillText(displayName, this.x, rectY + rectH / 2 + 1);
+        // Fondo y Colores Semánticos
+        const isLocal = this.team === 0;
+        const tagBg = isLocal ? '#ffffff' : '#2b2b2b';
+        const tagText = isLocal ? '#111111' : '#f8f9fa';
+        const tagStripe = isLocal ? '#FFCB05' : '#4dabf7';
         
-        // Barra de carga
+        c.fillStyle = tagBg;
+        if (c.roundRect) {
+            c.beginPath(); c.roundRect(rectX, rectY, rectW, rectH, 3); c.fill();
+            // Franja lateral
+            c.fillStyle = tagStripe;
+            c.beginPath(); 
+            c.moveTo(rectX + 3, rectY); 
+            c.lineTo(rectX + 2, rectY); // Pequeño radio manual para la franja
+            c.arcTo(rectX, rectY, rectX, rectY + 3, 3);
+            c.lineTo(rectX, rectY + rectH - 3);
+            c.arcTo(rectX, rectY + rectH, rectX + 3, rectY + rectH, 3);
+            c.lineTo(rectX + 3, rectY + rectH);
+            c.fill();
+        } else {
+            c.fillRect(rectX, rectY, rectW, rectH);
+            c.fillStyle = tagStripe;
+            c.fillRect(rectX, rectY, 3, rectH);
+        }
+
+        // Texto de la etiqueta
+        c.fillStyle = tagText;
+        c.textBaseline = 'middle';
+        c.fillText(displayName, this.x + 1, rectY + rectH / 2 + 1);
+        
+        // Barra de carga (Mantiene legibilidad)
         if(this.isUser&&isCharging){
-            const bw=40,bh=6;c.fillStyle='rgba(0,0,0,0.5)';c.fillRect(this.x-bw/2,this.y-45,bw,bh);
+            const bw=40,bh=6;
+            c.fillStyle='rgba(0,0,0,0.5)';
+            if (c.roundRect) { c.beginPath(); c.roundRect(this.x-bw/2, this.y-45-jumpY, bw, bh, 3); c.fill(); }
+            else { c.fillRect(this.x-bw/2, this.y-45-jumpY, bw, bh); }
+            
             let cp=Math.min(1,(Date.now()-chargeStartTime)/700);
             const r=Math.min(255,Math.floor(510*cp)),g=Math.min(255,Math.floor(510*(1-cp)));
-            c.fillStyle=`rgb(${r},${g},0)`;c.fillRect(this.x-bw/2,this.y-45,bw*cp,bh);
+            c.fillStyle=`rgb(${r},${g},0)`;
+            if (c.roundRect) { c.beginPath(); c.roundRect(this.x-bw/2, this.y-45-jumpY, bw*cp, bh, 3); c.fill(); }
+            else { c.fillRect(this.x-bw/2, this.y-45-jumpY, bw*cp, bh); }
         }
     }
 }
@@ -754,6 +917,7 @@ function initGame(team, lineupData, rival, rivalLineup, mode, diff, tactic, simu
     localTeamData = team;
     rivalTeamData = rival;
     currentGameMode = mode;
+    usedSkills = [...activeSkills]; // Las habilidades activas al inicio se marcan como usadas
     currentAiDiff = diff;
     isSimulation = simulate;
     localStadium = team.terrenoJuego || '';
@@ -948,6 +1112,19 @@ function initGame(team, lineupData, rival, rivalLineup, mode, diff, tactic, simu
             const mins = Math.floor(matchTime / 60);
             const secs = matchTime % 60;
             document.getElementById('match-time').textContent = mins + "'" + (secs < 10 ? "0" + secs : secs);
+            
+            // Reducir timers de habilidades
+            if (typeof activeSkillTimers !== 'undefined') {
+                for (let skill of Object.keys(activeSkillTimers)) {
+                    if (activeSkillTimers[skill] > 0) {
+                        activeSkillTimers[skill]--;
+                        if (activeSkillTimers[skill] <= 0) {
+                            activeSkills = activeSkills.filter(s => s !== skill);
+                        }
+                    }
+                }
+            }
+
             if (matchTime >= gameConfig.matchDuration * 60) {
                 clearInterval(matchTimerInterval);
                 endMatchCountdown();
@@ -1044,9 +1221,7 @@ function endMatchCountdown() {
     gameState = 'countdown';
     countdownValue = 3;
     const cd = document.getElementById('countdown-display');
-    cd.style.display = 'block';
-    cd.textContent = '3';
-    playWhistle();
+    if (cd) cd.style.display = 'none'; // Eliminamos la cuenta atrás visual al final
     if (countdownInterval) clearInterval(countdownInterval);
     countdownInterval = setInterval(() => {
         countdownValue--;
@@ -1056,9 +1231,7 @@ function endMatchCountdown() {
             clearInterval(countdownInterval);
             countdownInterval = null;
             cd.style.display = 'none';
-            playWhistle();
-            setTimeout(playWhistle, 400);
-            setTimeout(playWhistle, 800);
+            playFinalWhistle();
             gameState = 'end_celebration';
             setTimeout(endMatch, 8000); // Aumentado a 8 segundos para que se vea bien la celebración y el llanto
         }
@@ -1083,7 +1256,7 @@ function scoreGoal(teamIndex) {
     if (goalScorer) {
         if (teamIndex === 0) {
             localScorers.push(goalScorer.name);
-            // Efectos de celebración local
+            // Fuegos artificiales locales
             for(let i=0; i<5; i++) {
                 setTimeout(() => spawnCelebration(Math.random()*width, Math.random()*height*0.4), i*300);
             }
@@ -1116,8 +1289,7 @@ function scoreGoal(teamIndex) {
         }
 
         gameState = 'countdown';
-        countdownValue = 3;
-        playWhistle();
+        countdownValue = 1;
         const cd = document.getElementById('countdown-display');
         if (cd) {
             cd.style.display = 'block';
@@ -1144,18 +1316,9 @@ function scoreGoal(teamIndex) {
 }
 
 function updateScorersDisplay() {
+    // El usuario pidió eliminar el nombre de los goleadores en el campo
     const el = document.getElementById('scorers-display');
-    if (!el) return;
-    
-    const aggregate = (list) => {
-        const counts = {};
-        list.forEach(name => counts[name] = (counts[name] || 0) + 1);
-        return Object.entries(counts).map(([name, count]) => `<span>${name}${count > 1 ? ' (x' + count + ')' : ''}</span>`).join('');
-    };
-
-    let html = '<div class="scorers-col scorers-local">' + aggregate(localScorers) + '</div>';
-    html += '<div class="scorers-col scorers-rival">' + aggregate(rivalScorers) + '</div>';
-    el.innerHTML = html;
+    if (el) el.innerHTML = '';
 }
 
 function clearScorersDisplay() {
@@ -1294,7 +1457,7 @@ function updateGameState(){
             const goalX=p.team===0?0:width;
             const mostBack=players.filter(pl=>pl.team===p.team&&!pl.isGoalie)
                 .reduce((best,pl)=>(p.team===0?pl.x<best.x:pl.x>best.x)?pl:best,players.filter(pl=>pl.team===p.team&&!pl.isGoalie)[0]);
-            p.isEmergencyGoalkeeper=(p===mostBack&&Math.hypot(ball.x-goalX,ball.y-height/2)<width*0.4);
+            p.isEmergencyGoalkeeper=(p===mostBack&&Math.hypot(ball.x-goalX,ball.y-centerY)<width*0.4);
         });
 
         if(currentPlayer)currentPlayer.isUser=false;
@@ -1311,6 +1474,13 @@ function updateGameState(){
         if(!isSimulation&&p.team===0&&p!==currentPlayer)continue;
         let d=Math.hypot(p.x-ball.x,p.y-ball.y);
         if(p === currentPossessor) d -= 5;
+        
+        // Mecánica Muro Defensivo: los rivales no pueden coger el balón si están cerca de un defensa
+        if (typeof activeSkills !== 'undefined' && activeSkills.includes('wall') && p.team === 1) {
+            const nearDef = players.some(def => def.team === 0 && Math.hypot(def.x - ball.x, def.y - ball.y) < 150);
+            if (nearDef) d += 200; // Penaliza enormemente al rival para que nunca consiga la posesión
+        }
+
         if(d<md){md=d;co=p}
     }
     currentPossessor=co&&(Math.hypot(co.x-ball.x,co.y-ball.y)<50)?co:null;
@@ -1322,26 +1492,39 @@ function updateGameState(){
     if (gameState === 'end_celebration') {
         const winner = score[0] > score[1] ? 0 : (score[1] > score[0] ? 1 : -1);
         if (winner !== -1) {
-            // Punto central para que los ganadores se junten
-            const targetX = winner === 0 ? width * 0.3 : width * 0.7;
-            const targetY = height / 2;
+            // Los ganadores van hacia SU afición (en las gradas de arriba)
+            const targetX = winner === 0 ? width * 0.25 : width * 0.75;
+            const targetY = 60; // Justo delante de la grada superior
 
             players.forEach((p, idx) => {
                 if (p.team === winner && !p.isGoalie) {
-                    let dx = targetX - p.x;
-                    let dy = targetY - p.y;
+                    // Spread out near the fans
+                    const fanX = targetX + Math.sin(idx * 2) * 50;
+                    const fanY = targetY + Math.cos(idx * 2) * 20;
+                    
+                    let dx = fanX - p.x;
+                    let dy = fanY - p.y;
                     let dist = Math.hypot(dx, dy);
-                    if (dist > 40) {
-                        p.vx += (dx / dist) * 1.5;
-                        p.vy += (dy / dist) * 1.5;
+                    if (dist > 15) {
+                        p.vx += (dx / dist) * 1.8;
+                        p.vy += (dy / dist) * 1.8;
                         p.angle = Math.atan2(dy, dx);
+                    } else {
+                        p.angle = -Math.PI / 2; // Mirando a la grada
                     }
                     if (Math.random() < 0.01 && !p.speechBubble) {
                         p.speechBubble = "oe oe oe!";
                         setTimeout(() => p.speechBubble = null, 3000);
                     }
                     if (Math.random() < 0.05) {
-                        spawnCelebration(p.x, p.y - 20, 5);
+                        // En la celebración final, la grada local se llena de bengalas si ganaron
+                        if (winner === 0) {
+                            const flareX = 20 + Math.random() * (width / 2 - 40);
+                            const flareY = 10 + Math.random() * 25;
+                            spawnCelebration(flareX, flareY, 30, true);
+                        } else {
+                            spawnCelebration(p.x, p.y - 20, 5);
+                        }
                     }
                 } else if (p.team !== winner && !p.isGoalie) {
                     // Los perdedores se quedan quietos llorando
@@ -1363,61 +1546,92 @@ function updateGameState(){
 function drawField(){
     ctx.fillStyle='#2b8a3e';ctx.fillRect(0,0,width,height);
     
-    // Gradas con cabezas
+    // Gradas con cabezas y textura Premium
     const t = Date.now() * 0.005;
-    ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fillRect(0,0,width,45); 
+    const crowdGrad = ctx.createLinearGradient(0,0,0,45);
+    crowdGrad.addColorStop(0, '#1a1a1a');
+    crowdGrad.addColorStop(1, '#333');
+    ctx.fillStyle = crowdGrad; 
+    ctx.fillRect(0,0,width,45); 
+    
+    // Textura de cemento para la grada
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    ctx.lineWidth = 1;
+    for(let j=0; j<45; j+=5) {
+        ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(width, j); ctx.stroke();
+    }
     
     const skinColors = ['#ffccaa', '#f1c27d', '#e0ac69', '#8d5524', '#c68642'];
     const scoredTeam = gameState === 'goal' ? (kickoffTeam === 1 ? 0 : 1) : -1;
     const endWinner = gameState === 'end_celebration' ? (score[0] > score[1] ? 0 : (score[1] > score[0] ? 1 : -1)) : -1;
 
-    // Top stands (reducido a 2 filas)
     for(let row=0; row<2; row++) {
-        const yBase = 12 + row * 15;
-        for(let i=20 + (row%2)*15; i<width; i+=30) {
+        const yBase = 12 + row * 16;
+        for(let i=20 + (row%2)*15; i<width; i+=25) {
             const isLocal = i < width / 2;
             const teamIndex = isLocal ? 0 : 1;
             const isCelebrating = (scoredTeam === teamIndex) || (endWinner === teamIndex);
             
-            const color = teamIndex === 0 
-                ? (players.find(p=>p.team===0&&!p.isGoalie)?.shirtColor || (localTeamData ? mapColor(localTeamData.equipacion?.camiseta) : '#4dabf7')) 
-                : (players.find(p=>p.team===1&&!p.isGoalie)?.shirtColor || (rivalTeamData ? mapColor(rivalTeamData.equipacion?.camiseta) : '#e53935'));
-            const waveTop = isCelebrating ? (Math.sin(t*3 + i + row) > 0 ? -12 : 0) : (Math.sin(t + i + row) > 0 ? -4 : 0);
+            const baseColor = teamIndex === 0 
+                ? (players.find(p=>p.team===0&&!p.isGoalie)?.shirtColor || '#4dabf7') 
+                : (players.find(p=>p.team===1&&!p.isGoalie)?.shirtColor || '#e53935');
+            
+            const waveTop = isCelebrating ? (Math.sin(t*3 + i*0.1 + row) * 8) : (Math.sin(t + i*0.05) * 2);
             const skinColor = skinColors[(i * 3 + row * 7) % skinColors.length];
             
-            ctx.fillStyle = color;
-            ctx.beginPath(); ctx.arc(i, yBase + 6 + waveTop, 7, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = skinColor;
-            ctx.beginPath(); ctx.arc(i, yBase + waveTop, 5, 0, Math.PI*2); ctx.fill();
+            // Cuerpo/Camiseta con volumen
+            const bodyGrad = ctx.createRadialGradient(i-2, yBase+6+waveTop-2, 0, i, yBase+6+waveTop, 8);
+            bodyGrad.addColorStop(0, '#fff');
+            bodyGrad.addColorStop(0.2, baseColor);
+            bodyGrad.addColorStop(1, '#000');
+            ctx.fillStyle = bodyGrad;
+            ctx.beginPath(); ctx.arc(i, yBase + 7 + waveTop, 7, 0, Math.PI*2); ctx.fill();
+            
+            // Cabeza con volumen
+            const headGrad = ctx.createRadialGradient(i-1, yBase+waveTop-1, 0, i, yBase+waveTop, 5);
+            headGrad.addColorStop(0, '#fff');
+            headGrad.addColorStop(0.3, skinColor);
+            headGrad.addColorStop(1, '#6d4c41');
+            ctx.fillStyle = headGrad;
+            ctx.beginPath(); ctx.arc(i, yBase + waveTop, 5.5, 0, Math.PI*2); ctx.fill();
+
+            // Caras divertidas (tipo bebé) con parpadeo aleatorio
+            ctx.fillStyle = '#000';
+            const fanHash = Math.abs(Math.sin(i * 12.9898 + row * 78.233)) * 43758.5453;
+            const blink = Math.sin(t * 2 + fanHash) > 0.98 ? 0.1 : 1;
+            // Ojos grandes
+            ctx.beginPath(); ctx.ellipse(i - 2, yBase + waveTop - 1, 1.2, 1.5 * blink, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(i + 2, yBase + waveTop - 1, 1.2, 1.5 * blink, 0, 0, Math.PI*2); ctx.fill();
+            // Boca (sonrisa o sorpresa)
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            if (isCelebrating) {
+                ctx.arc(i, yBase + waveTop + 1, 2, 0, Math.PI); // Boca abierta celebrando
+            } else {
+                ctx.arc(i, yBase + waveTop + 1, 1.5, 0.2, Math.PI - 0.2); // Sonrisa
+            }
+            ctx.stroke();
         }
     }
 
-    // Bottom stands
-    ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fillRect(0, height - 45, width, 45);
-    for(let row=0; row<2; row++) {
-        const yBase = height - 45 + 12 + row * 15;
-        for(let i=20 + (row%2)*15; i<width; i+=30) {
-            const teamIndex = i < width / 2 ? 0 : 1;
-            const isCelebrating = (scoredTeam === teamIndex) || (endWinner === teamIndex);
-            const color = teamIndex === 0 
-                ? (players.find(p=>p.team===0&&!p.isGoalie)?.shirtColor || (localTeamData ? mapColor(localTeamData.equipacion?.camiseta) : '#4dabf7')) 
-                : (players.find(p=>p.team===1&&!p.isGoalie)?.shirtColor || (rivalTeamData ? mapColor(rivalTeamData.equipacion?.camiseta) : '#e53935'));
-            const waveTop = isCelebrating ? (Math.sin(t*3 + i + row) > 0 ? -12 : 0) : (Math.sin(t + i + row) > 0 ? -4 : 0);
-            const skinColor = skinColors[(i * 3 + row * 7) % skinColors.length];
-            
-            ctx.fillStyle = color;
-            ctx.beginPath(); ctx.arc(i, yBase + 6 + waveTop, 7, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = skinColor;
-            ctx.beginPath(); ctx.arc(i, yBase + waveTop, 5, 0, Math.PI*2); ctx.fill();
-        }
+    // Flashes de cámara aleatorios en la grada
+    if (Math.random() < 0.02) {
+        const fx = Math.random() * width;
+        const fy = Math.random() * 40;
+        ctx.fillStyle = '#fff';
+        ctx.shadowBlur = 20; ctx.shadowColor = '#fff';
+        ctx.beginPath(); ctx.arc(fx, fy, 2 + Math.random() * 3, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0;
     }
-    
+
     ctx.fillStyle='rgba(0,0,0,0.05)';for(let i=0;i<width;i+=60){if((i/60)%2===0)ctx.fillRect(i,0,60,height)}
     
     // Field lines
-    const pitchTop = 45;
-    const pitchBottom = height - 45;
+    const pitchTop = 45; // Dejamos hueco para el público de arriba
+    const pitchBottom = height - 5; // Agrandamos el campo hasta abajo (sin vallas)
     const pitchHeight = pitchBottom - pitchTop;
+    const centerY = pitchTop + pitchHeight / 2;
     
     ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=4;
     
@@ -1431,27 +1645,27 @@ function drawField(){
     ctx.beginPath(); ctx.arc(width, pitchBottom, 15, Math.PI, -Math.PI/2); ctx.stroke();
 
     ctx.beginPath();ctx.moveTo(width/2, pitchTop);ctx.lineTo(width/2, pitchBottom);ctx.stroke(); // Midline
-    ctx.beginPath();ctx.arc(width/2, height/2, Math.min(width,height)*.15, 0, Math.PI*2);ctx.stroke(); // Center circle
+    ctx.beginPath();ctx.arc(width/2, centerY, Math.min(width,pitchHeight)*.15, 0, Math.PI*2);ctx.stroke(); // Center circle
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.beginPath();ctx.arc(width/2,height/2,5,0,Math.PI*2);ctx.fill(); // Center dot
+    ctx.beginPath();ctx.arc(width/2,centerY,5,0,Math.PI*2);ctx.fill(); // Center dot
 
-    const aw=width*.15,ah=height*.45;
-    ctx.strokeRect(0,height/2-ah/2,aw,ah);ctx.strokeRect(width-aw,height/2-ah/2,aw,ah); // Penalty boxes
+    const aw=width*.15,ah=pitchHeight*.45;
+    ctx.strokeRect(0,centerY-ah/2,aw,ah);ctx.strokeRect(width-aw,centerY-ah/2,aw,ah); // Penalty boxes
     
     // Áreas pequeñas
-    const saw=width*.05,sah=height*.30;
-    ctx.strokeRect(0,height/2-sah/2,saw,sah);ctx.strokeRect(width-saw,height/2-sah/2,saw,sah);
+    const saw=width*.05,sah=pitchHeight*.30;
+    ctx.strokeRect(0,centerY-sah/2,saw,sah);ctx.strokeRect(width-saw,centerY-sah/2,saw,sah);
     
     // Puntos de penalti y medias lunas
     const pSpotX = aw * 0.75;
-    const rArc = Math.min(width,height)*0.15;
+    const rArc = Math.min(width,pitchHeight)*0.15;
     const theta = Math.acos(Math.max(-1, Math.min(1, (aw - pSpotX) / rArc)));
     
-    ctx.beginPath(); ctx.arc(pSpotX, height/2, rArc, -theta, theta); ctx.stroke();
-    ctx.beginPath(); ctx.arc(width - pSpotX, height/2, rArc, Math.PI - theta, Math.PI + theta); ctx.stroke();
+    ctx.beginPath(); ctx.arc(pSpotX, centerY, rArc, -theta, theta); ctx.stroke();
+    ctx.beginPath(); ctx.arc(width - pSpotX, centerY, rArc, Math.PI - theta, Math.PI + theta); ctx.stroke();
     
-    ctx.beginPath(); ctx.arc(pSpotX, height/2, 5, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(width - pSpotX, height/2, 5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(pSpotX, centerY, 5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(width - pSpotX, centerY, 5, 0, Math.PI*2); ctx.fill();
 
     const gw=100,gd=30;
     
@@ -1486,8 +1700,8 @@ function drawField(){
         ctx.stroke();
     };
 
-    drawGoal(0, height/2-gw/2, gd, gw, true);
-    drawGoal(width-gd, height/2-gw/2, gd, gw, false);
+    drawGoal(0, centerY-gw/2, gd, gw, true);
+    drawGoal(width-gd, centerY-gw/2, gd, gw, false);
 }
 
 function drawTouchUI(){
@@ -1512,21 +1726,24 @@ function update(){
             let tm = players.filter(pl=>pl.team===p.team).sort((a,b)=>(b.isGoalie?1:0)-(a.isGoalie?1:0));
             let idx = tm.indexOf(p);
             
-            if(entranceTimer < 200) {
-                tx = width/2 + (p.team===0 ? -20 : 20);
-                ty = height/2 + (idx - 3) * 35;
-                p.angle = -Math.PI/2;
-            } else if(entranceTimer < 300) {
-                tx = width/2 + (p.team===0 ? -20 : 20);
-                ty = height/2 + (idx - 3) * 35;
-                p.angle = -Math.PI/2 + Math.sin(entranceTimer*0.1)*0.4;
+            if(entranceTimer < 550) {
+                // FASE 1: Formación de círculo alrededor del centro directamente
+                const pitchHeight = (height - 50);
+                const circleRadius = Math.min(width, pitchHeight) * 0.15 + 15;
+                const angleOffset = p.team === 0 ? Math.PI : 0;
+                const spread = Math.PI * 0.85;
+                const angle = angleOffset + (idx - 2.5) * (spread / 5.5);
+                tx = width/2 + Math.cos(angle) * circleRadius;
+                ty = centerY + Math.sin(angle) * circleRadius;
+                p.angle = Math.atan2(centerY - p.y, width/2 - p.x);
             } else {
+                // FASE 3: Posiciones tácticas para el saque inicial
                 tx = p.tacticX; ty = p.tacticY;
                 if(p.team===0 && tx > width/2 && !p.isGoalie) tx = width/2 - 40;
                 if(p.team===1 && tx < width/2 && !p.isGoalie) tx = width/2 + 40;
                 
                 const kickoffPlayer = getKickoffPlayer(kickoffTeam);
-                if (p === kickoffPlayer) { tx = width/2; ty = height/2; }
+                if (p === kickoffPlayer) { tx = width/2; ty = centerY; }
             }
             
             const dx = tx - p.x; const dy = ty - p.y; const dist = Math.hypot(dx,dy);
@@ -1553,8 +1770,7 @@ function update(){
         if(entranceTimer > 350 && (allInPosition || entranceTimer > 800)) {
             positionForKickoff();
             gameState = 'countdown';
-            countdownValue = 3;
-            playWhistle();
+            countdownValue = 1;
             const cd = document.getElementById('countdown-display');
             if (cd) {
                 cd.style.display = 'block'; 
@@ -1695,7 +1911,15 @@ function draw(){
     drawTouchUI();
     if(gameState==='countdown'){
         const cd=document.getElementById('countdown-display');
-        cd.style.display='block';cd.textContent=countdownValue>0?countdownValue:'¡YA!';
+        if (cd) {
+            // Solo mostrar la cuenta atrás al inicio del partido (matchTime 0)
+            if (matchTime === 0) {
+                cd.style.display='block';
+                cd.textContent=countdownValue>0?countdownValue:'¡YA!';
+            } else {
+                cd.style.display='none';
+            }
+        }
     }
     if(gameState==='playing'){
         const totalPoss = possessionStats.home + possessionStats.away;
@@ -1707,12 +1931,32 @@ function draw(){
             document.getElementById('poss-text-home').textContent = homePct + '%';
             document.getElementById('poss-text-away').textContent = awayPct + '%';
         }
+        
+        // Iconos de habilidades activos parpadeando
+        if (typeof activeSkills !== 'undefined' && activeSkills.length > 0) {
+            const time = Date.now();
+            if (Math.sin(time / 150) > 0) { // Parpadeo
+                ctx.font = '30px Arial';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'bottom';
+                let xOffset = 20;
+                if (activeSkills.includes('speed')) {
+                    ctx.fillText('⚡', xOffset, height - 20);
+                    xOffset += 40;
+                }
+                if (activeSkills.includes('wall')) {
+                    ctx.fillText('🛡️', xOffset, height - 20);
+                    xOffset += 40;
+                }
+            }
+        }
     }
 }
 
 function resize() {
     width = canvas.width = window.innerWidth;
     height = canvas.height = window.innerHeight;
+    centerY = 45 + (height - 50) / 2; // pitchTop = 45, pitchBottom = height - 5
     
     // Calcular escala dinámica optimizada para PC y Tablet
     // Limitamos la escala en pantallas muy grandes para que no se vea "gigante"

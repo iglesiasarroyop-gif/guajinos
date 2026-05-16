@@ -141,6 +141,9 @@ const gameConfig = {
 const AMBIENT_MUSIC_PATH = "musica/ambiente.mp3";
 const GOAL_SOUND_PATH = "musica/gol.mp3";
 const MENU_MUSIC_PATH = "musica/fondo.mp3";
+const WHISTLE_SOUND_PATH = "musica/pitido.mp3";
+const FINAL_WHISTLE_SOUND_PATH = "musica/pitidoFinal.mp3";
+
 
 async function loadTeams() {
     if (typeof EQUIPOS_INLINE === 'undefined') {

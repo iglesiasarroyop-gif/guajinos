@@ -18,6 +18,7 @@ let activeSlot = null;
 let lastScreenBeforeSettings = 'menu';
 let selectedTactic = '2-2-2';
 let matchInProgress = false;
+let selectedSkills = []; // Habilidades activas para el próximo partido
 
 const PRESET_COLORS = [
     '#e53935', '#1565c0', '#f5f5f5', '#2e7d32', '#333333', 
@@ -53,6 +54,50 @@ function showLoadGameScreen() {
     renderLoadGameList();
     showScreen('load-game');
 }
+
+function toggleSkill(skillId) {
+    const hasSkill = selectedSkills.includes(skillId);
+    if (hasSkill) {
+        selectedSkills = selectedSkills.filter(s => s !== skillId);
+    } else {
+        selectedSkills.push(skillId);
+    }
+    updateSkillsUI();
+    triggerHaptic('medium');
+}
+
+function updateSkillsUI() {
+    const cards = document.querySelectorAll('.skill-card.unlocked');
+    cards.forEach(card => {
+        const id = card.id.replace('skill-', '');
+        if (typeof usedSkills !== 'undefined' && usedSkills.includes(id)) {
+            card.classList.remove('active');
+            card.classList.add('used');
+            card.querySelector('.skill-status').textContent = 'USADA';
+            card.style.pointerEvents = 'none';
+            card.style.opacity = '0.5';
+            card.style.filter = 'grayscale(100%)';
+        } else if (selectedSkills.includes(id)) {
+            card.classList.add('active');
+            card.querySelector('.skill-status').textContent = 'ACTIVADO';
+        } else {
+            card.classList.remove('active');
+            card.querySelector('.skill-status').textContent = 'ACTIVAR';
+        }
+    });
+
+    const btnSkills = document.getElementById('btn-skills');
+    if (btnSkills) {
+        if (selectedSkills.length > 0) {
+            btnSkills.style.background = '#2196f3'; // Azul cuando hay activas
+            btnSkills.textContent = '⚡ ' + selectedSkills.length + ' ACTIVA';
+        } else {
+            btnSkills.style.background = '#ff9800'; // Naranja/dorado por defecto
+            btnSkills.textContent = '⚡ HABILIDADES';
+        }
+    }
+}
+
 
 function renderLoadGameList() {
     const list = document.getElementById('load-games-list');
@@ -366,6 +411,7 @@ function renderLineup() {
 
     // Posiciones en el campo
     fieldEl.innerHTML = `
+        <button id="btn-random" class="premium-btn btn-blue">🎲 ALEATORIO</button>
         <div class="field-center-dot"></div>
         <div class="field-area-top"></div>
         <div class="field-area-bottom"></div>
@@ -381,6 +427,8 @@ function renderLineup() {
         </div>
         <div id="field-status" style="position:absolute;bottom:10px;right:10px;z-index:10;font-size:12px;color:rgba(255,255,255,.6);background:rgba(0,0,0,.4);padding:4px 10px;border-radius:6px"></div>
     `;
+
+    document.getElementById('btn-random')?.addEventListener('click', randomFillLineup);
 
     const fieldStatus = document.getElementById('field-status');
 
@@ -677,6 +725,17 @@ function startMatch(simulate=false) {
     if (btnTactic) btnTactic.style.display = 'flex';
 
     const rivalLineupData = (gameMode === 'match' || gameMode === 'league_match') ? autoFillRivalLineup() : null;
+    
+    // Pasar habilidades activas al motor
+    if (typeof activeSkills !== 'undefined') {
+        activeSkills = [...selectedSkills];
+        if (typeof activeSkillTimers !== 'undefined') {
+            activeSkillTimers = {};
+            if (activeSkills.includes('speed')) activeSkillTimers['speed'] = 15;
+            if (activeSkills.includes('wall')) activeSkillTimers['wall'] = 30;
+        }
+    }
+
     initGame(selectedTeam, lineup, rivalTeam, rivalLineupData, gameMode, gameConfig.difficulty, selectedTactic, simulate);
 }
 
@@ -1228,6 +1287,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         startBtn.addEventListener('click', onStartBtnClick);
     }
     document.getElementById('btn-random')?.addEventListener('click', randomFillLineup);
+    document.getElementById('btn-skills')?.addEventListener('click', () => {
+        document.getElementById('btn-skills-close').textContent = 'VOLVER A LA ALINEACIÓN';
+        showScreen('skills');
+        updateSkillsUI();
+    });
+    document.getElementById('btn-skills-close')?.addEventListener('click', () => {
+        if (typeof gameState !== 'undefined' && gameState === 'paused') {
+            // Aplicar las habilidades seleccionadas al partido en curso
+            selectedSkills.forEach(s => {
+                if (!usedSkills.includes(s) && !activeSkills.includes(s)) {
+                    activeSkills.push(s);
+                    usedSkills.push(s);
+                    if (s === 'speed') activeSkillTimers['speed'] = 15;
+                    if (s === 'wall') activeSkillTimers['wall'] = 30;
+                }
+            });
+            showScreen('none');
+            document.getElementById('game-ui').style.display = 'block';
+            gameState = 'playing';
+        } else {
+            showScreen('lineup');
+        }
+    });
+    
+    document.getElementById('btn-ingame-skills')?.addEventListener('click', () => {
+        if (typeof pauseGame === 'function') pauseGame();
+        document.getElementById('game-ui').style.display = 'none';
+        document.getElementById('btn-skills-close').textContent = 'VOLVER AL PARTIDO';
+        showScreen('skills');
+        updateSkillsUI();
+    });
+
+    document.getElementById('skill-speed')?.addEventListener('click', () => {
+        toggleSkill('speed');
+    });
+    document.getElementById('skill-wall')?.addEventListener('click', () => {
+        toggleSkill('wall');
+    });
+
     document.querySelectorAll('.back-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             if (currentScreen === 'team-select') {
